@@ -1,5 +1,6 @@
 use std::any::{Any, TypeId};
-use json::JsonValue;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use crate::target::{Inputs, Outputs};
 use std::collections::HashMap;
 
@@ -19,15 +20,22 @@ impl IOData {
 pub type OutputData = HashMap<String, IOData>;
 pub type InputData<'a> = HashMap<String, &'a HashMap<String, IOData>>;
 
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Node {
   pub id: i64,
   pub name: String,
-  pub data: JsonValue,
+  pub data: Value,
   pub group: i64,
   pub position: Vec<f32>,
   pub inputs: Inputs,
   pub outputs: Outputs
 }
 
-pub type Nodes = HashMap<i64, Node>;
+pub type Nodes = HashMap<String, Node>;
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct D3NE {
+  pub id: String,
+  pub nodes: Nodes,
+  pub comments: Vec<String>,
+}

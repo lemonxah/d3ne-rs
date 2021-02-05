@@ -1,26 +1,26 @@
-use json::JsonValue;
+use serde_json::Value;
 
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct InputConnection {
-  pub node: i64,
+  pub node: String,
   pub output: String,
-  pub data: JsonValue
+  pub data: Value
 }
 
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Input {
   pub name: String,
   pub connections: Vec<InputConnection>,
 }
 
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct OutputConnection {
-  pub node: i64,
+  pub node: String,
   pub input: String,
-  pub data: JsonValue
+  pub data: Value
 }
 
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Output {
   pub name: String,
   pub connections: Vec<OutputConnection>,

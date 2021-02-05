@@ -1,6 +1,7 @@
 #![feature(unboxed_closures)]
 
-extern crate json;
+#[macro_use] extern crate serde_json;
+#[macro_use] extern crate serde;
 
 mod target;
 mod group;
@@ -116,13 +117,13 @@ mod tests {
       "comments": []
     }
     "#;
-    let json = json::parse(json_data).unwrap();
+    
     let mut workers = Workers::new();
 
     workers.put("Number", Box::new(number));
     workers.put("Add", Box::new(add));
     let mut engine = Engine::new("rete@1.0.0", workers);
-    let output = engine.process(json);
+    let output = engine.process(json_data);
     assert_eq!(output.data.downcast_ref::<i32>().unwrap(), &7);
   }
 
