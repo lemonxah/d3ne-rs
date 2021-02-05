@@ -1,33 +1,5 @@
 use crate::node::*;
 use std::collections::HashMap;
-use std::marker::PhantomData;
-
-
-// struct FnChain<In, Out, F> {
-//   f: F,
-//   _types: PhantomData<*const (In, Out)>,
-// }
-
-// impl<T, U, F> FnChain<T, U, F> where F: FnOnce(T) -> U {
-//   fn new(f: F) -> Self {
-//     Self {
-//       f,
-//       _types: PhantomData,
-//     }
-//   }
-
-//   fn chain<V, G>(self, g: G) -> FnChain<T, V, impl FnOnce(T) -> V> where G: FnOnce(U) -> V, {
-//     let f = self.f;
-//     FnChain {
-//       f: move |x| g(f(x)),
-//       _types: PhantomData,
-//     }
-//   }
-
-//   fn run(self, x: T) -> U {
-//     (self.f)(x)
-//   }
-// }
 
 pub struct Workers {
   map: HashMap<String, Box<dyn Fn<(Node, InputData), Output = OutputData>>>

@@ -56,7 +56,7 @@ impl <'a, 'b> Engine {
     let output = self.workers.call(&node.name, node.clone(), input_data).unwrap();
     cache.insert(node.id, output.clone());
     // dbg!(&cache);
-    return cache[&node.id].clone();
+    return output;
   }
 
   fn forward_process(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, cache: &mut HashMap<i64, OutputData>) {
