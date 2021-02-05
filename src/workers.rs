@@ -5,6 +5,7 @@ pub struct Workers {
   map: HashMap<String, Box<dyn Fn<(Node, InputData), Output = OutputData>>>
 }
 
+#[allow(dead_code)]
 impl Workers {
 
   pub fn new() -> Workers {

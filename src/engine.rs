@@ -3,16 +3,19 @@ use std::collections::HashMap;
 use crate::node::*;
 use crate::workers::Workers;
 
+#[allow(dead_code)]
 pub struct Engine {
   id: String,
   workers: Workers,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Error {
   VersionMismatch,
 }
 
+#[allow(dead_code)]
 impl <'a, 'b> Engine {
   pub fn new(id: &str, workers: Workers) -> Engine {
     Engine {

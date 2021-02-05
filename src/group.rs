@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[allow(dead_code)]
 pub struct Group {
   id: i64,
   nodes: Vec<i64>,
@@ -9,5 +10,5 @@ pub struct Group {
   width: f32,
   height: f32
 }
-
+#[allow(dead_code)]
 pub type Groups = HashMap<i64, Group>;
