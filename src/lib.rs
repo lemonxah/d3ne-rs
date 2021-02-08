@@ -3,11 +3,11 @@
 #[macro_use] extern crate serde;
 extern crate serde_json;
 
-mod target;
-mod group;
-mod node;
-mod workers;
-mod engine;
+pub mod target;
+pub mod group;
+pub mod node;
+pub mod workers;
+pub mod engine;
 
 #[cfg(test)]
 mod tests {
