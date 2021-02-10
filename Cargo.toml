@@ -1,12 +1,12 @@
 [package]
 name = "d3ne"
-version = "0.1.4"
+version = "0.2.0"
 authors = ["lemonxah <lemon.xah@gmail.com>"]
 edition = "2018"
 description = "Rust D3 Node Engine implementation that works with retejs, still a work in progress"
 license = "Apache-2.0"
 homepage = "https://github.com/lemonxah/d3ne-rs"
-documentation = "https://docs.rs/d3ne/0.1.4/d3ne/"
+documentation = "https://docs.rs/d3ne/0.2.0/d3ne/"
 repository = "https://github.com/lemonxah/d3ne-rs"
 
 [dependencies]

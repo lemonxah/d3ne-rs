@@ -678,10 +678,10 @@ mod tests {
     let mut map = HashMap::new();
     let num = node.get_number_field("num", &inputs);
     let max = node.get_number_field("max", &inputs);
-    if num > max {
-      map.insert("true".to_string(), iodata!(max));
+    if num.unwrap() > max.unwrap() {
+      map.insert("true".to_string(), iodata!(max.unwrap()));
     } else {
-      map.insert("false".to_string(), iodata!(num));
+      map.insert("false".to_string(), iodata!(num.unwrap()));
     }
     Rc::new(map)
   }
@@ -690,7 +690,7 @@ mod tests {
     let mut map = HashMap::new();
     let result = node.get_number_field("num", &inputs);
     map.insert("num".to_string(), IOData {
-      data: Box::new(result)
+      data: Box::new(result.unwrap())
     });
     Rc::new(map)
   }
@@ -700,7 +700,7 @@ mod tests {
     let num2 = node.get_number_field("num2", &inputs);
     let mut map = HashMap::new();
     map.insert("num".to_string(), IOData {
-      data: Box::new(num + num2)
+      data: Box::new(num.unwrap() + num2.unwrap())
     });
     Rc::new(map)
   }
@@ -710,9 +710,8 @@ mod tests {
     let num2 = node.get_number_field("num2", &inputs);
     let mut map = HashMap::new();
     map.insert("num".to_string(), IOData {
-      data: Box::new(num * num2)
+      data: Box::new(num.unwrap() * num2.unwrap())
     });
     Rc::new(map)
   }
-
 }

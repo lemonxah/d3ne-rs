@@ -45,27 +45,27 @@ pub struct Node {
 }
 
 impl Node {
-  pub fn get_number_field(&self, field: &str, inputs: &InputData) -> i64 {
+  pub fn get_number_field(&self, field: &str, inputs: &InputData) -> Option<i64> {
     let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| *v.get::<i64>().unwrap()).unwrap());
-    v1.or(self.data.get(field).map(|n| n.as_i64().unwrap())).unwrap()
+    v1.or(self.data.get(field).map(|n| n.as_i64().unwrap()))
   }
   
-  pub fn get_float_number_field(&self, field: &str, inputs: &InputData) -> f64 {
+  pub fn get_float_number_field(&self, field: &str, inputs: &InputData) -> Option<f64> {
     let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| *v.get::<f64>().unwrap()).unwrap());
-    v1.or(self.data.get(field).map(|n| n.as_f64().unwrap())).unwrap()
+    v1.or(self.data.get(field).map(|n| n.as_f64().unwrap()))
   }
   
-  pub fn get_str_field<'a>(&'a self, field: &str, inputs: &'a InputData) -> &'a str {
+  pub fn get_str_field<'a>(&'a self, field: &str, inputs: &'a InputData) -> Option<&'a str> {
     let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| *v.get::<&str>().unwrap()).unwrap());
-    v1.or(self.data.get(field).map(|n| n.as_str().unwrap())).unwrap()
+    v1.or(self.data.get(field).map(|n| n.as_str().unwrap()))
   }
   
-  pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Value {
+  pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
     let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| (v.get::<Value>()).unwrap().clone()).unwrap());
-    v1.or(self.data.get(field).map(|n| serde_json::from_str(n.as_str().unwrap()).unwrap())).unwrap()
+    v1.or(self.data.get(field).map(|n| serde_json::from_str(n.as_str().unwrap()).unwrap()))
   }
 
-  pub fn get_as_json_field(&self, field: &str, inputs: &InputData) -> Value {
+  pub fn get_as_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
     let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| {
       if v.is::<Value>() {
         (*v.get::<Value>().unwrap()).clone()
@@ -81,7 +81,7 @@ impl Node {
         json!({})
       }
     }).unwrap());
-    v1.or(self.data.get(field).map(|v| v.clone())).unwrap()
+    v1.or(self.data.get(field).map(|v| v.clone()))
   }
 
 }
