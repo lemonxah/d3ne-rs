@@ -60,8 +60,14 @@ impl Node {
     v1.or(self.data.get(field).map(|n| n.as_str().unwrap())).unwrap()
   }
   
-  pub fn get_json_field<'a>(&self, field: &str, inputs: &InputData) -> Value {
+  pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Value {
     let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| (v.get::<Value>()).unwrap().clone()).unwrap());
     v1.or(self.data.get(field).map(|n| serde_json::from_str(n.as_str().unwrap()).unwrap())).unwrap()
   }
+
+  pub fn get_as_json_field(&self, field: &str, inputs: &InputData) -> Value {
+    let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| (v.get::<Value>().unwrap()).clone()).unwrap());
+    v1.or(self.data.get(field).map(|v| v.clone())).unwrap()
+    }
+
 }
