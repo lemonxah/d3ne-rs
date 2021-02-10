@@ -66,8 +66,22 @@ impl Node {
   }
 
   pub fn get_as_json_field(&self, field: &str, inputs: &InputData) -> Value {
-    let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| (v.get::<Value>().unwrap()).clone()).unwrap());
+    let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| {
+      if v.is::<Value>() {
+        (*v.get::<Value>().unwrap()).clone()
+      } else if v.is::<bool>() {
+        serde_json::from_str(&v.get::<bool>().unwrap().to_string()).unwrap()
+      } else if v.is::<i64>() {
+        serde_json::from_str(&v.get::<i64>().unwrap().to_string()).unwrap()
+      } else if v.is::<f64>() {
+        serde_json::from_str(&v.get::<f64>().unwrap().to_string()).unwrap()
+      } else if v.is::<String>() {
+        serde_json::from_str(&v.get::<String>().unwrap()).unwrap()
+      } else {
+        json!({})
+      }
+    }).unwrap());
     v1.or(self.data.get(field).map(|v| v.clone())).unwrap()
-    }
+  }
 
 }
