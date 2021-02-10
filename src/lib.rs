@@ -5,7 +5,7 @@ extern crate serde_json;
 
 pub mod target;
 pub mod group;
-pub mod node;
+#[macro_use] pub mod node;
 pub mod workers;
 pub mod engine;
 
@@ -167,13 +167,12 @@ mod tests {
     workers.put("Add", Box::new(add));
     workers.put("Multiply", Box::new(multiply));
 
-    let mut engine = Engine::new("demo@0.1.1", workers);
-    let output = engine.process(json_data);
-    println!("output: {:?}", output);
+    let engine = Engine::new("demo@0.1.1", workers);
+    let nodes = engine.parse_json(json_data).unwrap();
+    let output = engine.process(&nodes, 1);
     let oo = output.unwrap();
     let result = oo["num"].get::<i64>().unwrap();
     assert_eq!(result, &8i64);
-
   }
 
   #[test]
@@ -329,33 +328,376 @@ mod tests {
     workers.put("Number", Box::new(number));
     workers.put("Add", Box::new(add));
 
-    let mut engine = Engine::new("demo@0.1.0", workers);
-    let output = engine.process(json_data);
-    println!("output: {:?}", output);
+    let engine = Engine::new("demo@0.1.0", workers);
+    let nodes = engine.parse_json(json_data).unwrap();
+    let output = engine.process(&nodes, 1);
     let oo = output.unwrap();
     let result = oo["num"].get::<i64>().unwrap();
     assert_eq!(result, &7i64);
   }
 
-  fn number(node: Node, _inputs: InputData) -> OutputData {
+  #[test]
+  fn branching_works_false() {
+    let json_data = r#"
+    {
+      "id": "demo@0.1.0",
+      "nodes": {
+        "1": {
+          "id": 1,
+          "data": {
+            "num": 2
+          },
+          "inputs": {},
+          "outputs": {
+            "num": {
+              "connections": [{
+                "node": 3,
+                "input": "num",
+                "data": {}
+              }]
+            }
+          },
+          "position": [-98, 218],
+          "name": "Number"
+        },
+        "2": {
+          "id": 2,
+          "data": {
+            "num": 1
+          },
+          "inputs": {},
+          "outputs": {
+            "num": {
+              "connections": [{
+                "node": 3,
+                "input": "num2",
+                "data": {}
+              }]
+            }
+          },
+          "position": [-147, 406],
+          "name": "Number"
+        },
+        "3": {
+          "id": 3,
+          "data": {},
+          "inputs": {
+            "num": {
+              "connections": [{
+                "node": 1,
+                "output": "num",
+                "data": {}
+              }]
+            },
+            "num2": {
+              "connections": [{
+                "node": 2,
+                "output": "num",
+                "data": {}
+              }]
+            }
+          },
+          "outputs": {
+            "num": {
+              "connections": [{
+                "node": 4,
+                "input": "num",
+                "data": {}
+              }]
+            }
+          },
+          "position": [424, 238],
+          "name": "Add"
+        },
+        "4": {
+          "id": 4,
+          "data": {
+            "max": 5
+          },
+          "inputs": {
+            "num": {
+              "connections": [{
+                "node": 3,
+                "output": "num",
+                "data": {}
+              }]
+            }
+          },
+          "outputs": {
+            "true": {
+              "connections": [{
+                "node": 5,
+                "input": "num",
+                "data": {}
+              }]
+            },
+            "false": {
+              "connections": [{
+                "node": 6,
+                "input": "num",
+                "data": {}
+              }]
+            }
+          },
+          "position": [807.5, 228],
+          "name": "Check"
+        },
+        "5": {
+          "id": 5,
+          "data": {
+            "num2": 4
+          },
+          "inputs": {
+            "num": {
+              "connections": [{
+                "node": 4,
+                "output": "num",
+                "data": {}
+              }]
+            }
+          },
+          "outputs": {
+            "num": {
+              "connections": []
+            }
+          },
+          "position": [1084.5, 243],
+          "name": "Add"
+        },
+        "6": {
+          "id": 6,
+          "data": {
+            "num2": 7
+          },
+          "inputs": {
+            "num": {
+              "connections": [{
+                "node": 4,
+                "output": "num",
+                "data": {}
+              }]
+            }
+          },
+          "outputs": {
+            "num": {
+              "connections": []
+            }
+          },
+          "position": [1084.5, 243],
+          "name": "Add"
+        }
+      },
+      "comments": []
+    }
+    "#;
+  
+    let mut workers = Workers::new();
+  
+    workers.put("Number", Box::new(number));
+    workers.put("Add", Box::new(add));
+    workers.put("Check", Box::new(check));
+  
+    let engine = Engine::new("demo@0.1.0", workers);
+    let nodes = engine.parse_json(json_data).unwrap();
+    let output = engine.process(&nodes, 1);
+    let oo = output.unwrap();
+    let result = oo["num"].get::<i64>().unwrap();
+    assert_eq!(result, &10i64);
+  }
+  
+  #[test]
+  fn branching_works_true() {
+    let json_data = r#"
+    {
+      "id": "demo@0.1.0",
+      "nodes": {
+        "1": {
+          "id": 1,
+          "data": {
+            "num": 6
+          },
+          "inputs": {},
+          "outputs": {
+            "num": {
+              "connections": [{
+                "node": 3,
+                "input": "num",
+                "data": {}
+              }]
+            }
+          },
+          "position": [-98, 218],
+          "name": "Number"
+        },
+        "2": {
+          "id": 2,
+          "data": {
+            "num": 1
+          },
+          "inputs": {},
+          "outputs": {
+            "num": {
+              "connections": [{
+                "node": 3,
+                "input": "num2",
+                "data": {}
+              }]
+            }
+          },
+          "position": [-147, 406],
+          "name": "Number"
+        },
+        "3": {
+          "id": 3,
+          "data": {},
+          "inputs": {
+            "num": {
+              "connections": [{
+                "node": 1,
+                "output": "num",
+                "data": {}
+              }]
+            },
+            "num2": {
+              "connections": [{
+                "node": 2,
+                "output": "num",
+                "data": {}
+              }]
+            }
+          },
+          "outputs": {
+            "num": {
+              "connections": [{
+                "node": 4,
+                "input": "num",
+                "data": {}
+              }]
+            }
+          },
+          "position": [424, 238],
+          "name": "Add"
+        },
+        "4": {
+          "id": 4,
+          "data": {
+            "max": 5
+          },
+          "inputs": {
+            "num": {
+              "connections": [{
+                "node": 3,
+                "output": "num",
+                "data": {}
+              }]
+            }
+          },
+          "outputs": {
+            "true": {
+              "connections": [{
+                "node": 5,
+                "input": "num",
+                "data": {}
+              }]
+            },
+            "false": {
+              "connections": [{
+                "node": 6,
+                "input": "num",
+                "data": {}
+              }]
+            }
+          },
+          "position": [807.5, 228],
+          "name": "Check"
+        },
+        "5": {
+          "id": 5,
+          "data": {
+            "num2": 4
+          },
+          "inputs": {
+            "num": {
+              "connections": [{
+                "node": 4,
+                "output": "num",
+                "data": {}
+              }]
+            }
+          },
+          "outputs": {
+            "num": {
+              "connections": []
+            }
+          },
+          "position": [1084.5, 243],
+          "name": "Add"
+        },
+        "6": {
+          "id": 6,
+          "data": {
+            "num2": 7
+          },
+          "inputs": {
+            "num": {
+              "connections": [{
+                "node": 4,
+                "output": "num",
+                "data": {}
+              }]
+            }
+          },
+          "outputs": {
+            "num": {
+              "connections": []
+            }
+          },
+          "position": [1084.5, 243],
+          "name": "Add"
+        }
+      },
+      "comments": []
+    }
+    "#;
+  
+    let mut workers = Workers::new();
+  
+    workers.put("Number", Box::new(number));
+    workers.put("Add", Box::new(add));
+    workers.put("Check", Box::new(check));
+  
+    let engine = Engine::new("demo@0.1.0", workers);
+    let nodes = engine.parse_json(json_data).unwrap();
+    let output = engine.process(&nodes, 1);
+    let oo = output.unwrap();
+    let result = oo["num"].get::<i64>().unwrap();
+    assert_eq!(result, &9i64);
+  }
+  
+  fn check(node: Node, inputs: InputData) -> OutputData {
     let mut map = HashMap::new();
-    let result = node.data["num"].to_string().parse::<i64>().unwrap();
+    let num = node.get_number_field("num", &inputs);
+    let max = node.get_number_field("max", &inputs);
+    if num > max {
+      map.insert("true".to_string(), iodata!(max));
+    } else {
+      map.insert("false".to_string(), iodata!(num));
+    }
+    Rc::new(map)
+  }
+
+  fn number(node: Node, inputs: InputData) -> OutputData {
+    let mut map = HashMap::new();
+    let result = node.get_number_field("num", &inputs);
     map.insert("num".to_string(), IOData {
       data: Box::new(result)
     });
-    println!("sourcing: {:?}", result);
     Rc::new(map)
   }
 
   fn add(node: Node, inputs: InputData) -> OutputData {
-    let inum1 = inputs.get("num").map(|i| i.values().into_iter().next().map(|v| *v.get::<i64>().unwrap()).unwrap());
-    let num = inum1.or(node.data.get("num").map(|n| n.as_i64().unwrap())).unwrap();
-
-    let inum2 = inputs.get("num2").map(|i| i.values().into_iter().next().map(|v| *v.get::<i64>().unwrap()).unwrap());
-    let num2 = inum2.or(node.data.get("num2").map(|n| n.as_i64().unwrap())).unwrap();
-
-    println!("adding: {:?} + {:?} = {:?}", num, num2, num + num2);
-
+    let num = node.get_number_field("num", &inputs);
+    let num2 = node.get_number_field("num2", &inputs);
     let mut map = HashMap::new();
     map.insert("num".to_string(), IOData {
       data: Box::new(num + num2)
@@ -364,14 +706,8 @@ mod tests {
   }
 
   fn multiply(node: Node, inputs: InputData) -> OutputData {
-    let inum1 = inputs.get("num").map(|i| i.values().into_iter().next().map(|v| *v.get::<i64>().unwrap()).unwrap());
-    let num = inum1.or(node.data.get("num").map(|n| n.as_i64().unwrap())).unwrap();
-
-    let inum2 = inputs.get("num2").map(|i| i.values().into_iter().next().map(|v| *v.get::<i64>().unwrap()).unwrap());
-    let num2 = inum2.or(node.data.get("num2").map(|n| n.as_i64().unwrap())).unwrap();
-
-    println!("multiplying: {:?} * {:?} = {:?}", num, num2, num * num2);
-
+    let num = node.get_number_field("num", &inputs);
+    let num2 = node.get_number_field("num2", &inputs);
     let mut map = HashMap::new();
     map.insert("num".to_string(), IOData {
       data: Box::new(num * num2)
