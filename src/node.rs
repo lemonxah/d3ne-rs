@@ -55,9 +55,9 @@ impl Node {
     v1.or(self.data.get(field).map(|n| n.as_f64().unwrap()))
   }
   
-  pub fn get_str_field<'a>(&'a self, field: &str, inputs: &'a InputData) -> Option<&'a str> {
-    let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| *v.get::<&str>().unwrap()).unwrap());
-    v1.or(self.data.get(field).map(|n| n.as_str().unwrap()))
+  pub fn get_string_field(&self, field: &str, inputs: &InputData) -> Option<String> {
+    let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| v.get::<String>().unwrap().clone()).unwrap());
+    v1.or(self.data.get(field).map(|n| n.to_string()))
   }
   
   pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
