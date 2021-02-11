@@ -57,7 +57,7 @@ impl Node {
   
   pub fn get_string_field(&self, field: &str, inputs: &InputData) -> Option<String> {
     let v1 = inputs.get(field).map(|i| i.values().into_iter().next().map(|v| v.get::<String>().unwrap().clone()).unwrap());
-    v1.or(self.data.get(field).map(|n| n.to_string()))
+    v1.or(self.data.get(field).map(|n| n.as_str().unwrap().to_string()))
   }
   
   pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
