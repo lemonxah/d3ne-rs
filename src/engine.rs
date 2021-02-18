@@ -26,6 +26,10 @@ impl <'a, 'b> Engine {
 
   pub fn parse_json(&self, json: &str) -> Result<HashMap<i64, Node>, Error> {
     let value: Value = serde_json::from_str(json).unwrap();
+    self.parse_value(value)
+  }
+
+  pub fn parse_value(&self, value: Value) -> Result<HashMap<i64, Node>, Error> {
     let version = value["id"].as_str().unwrap().to_string();
     if self.id != version {
       return Err(Error::VersionMismatch);
