@@ -76,7 +76,7 @@ impl Node {
       } else if v.is::<f64>() {
         serde_json::from_str(&v.get::<f64>().unwrap().to_string()).unwrap()
       } else if v.is::<String>() {
-        serde_json::from_str(&v.get::<String>().unwrap()).unwrap()
+        Value::String(v.get::<String>().unwrap().clone())
       } else {
         json!({})
       }
