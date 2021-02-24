@@ -1,6 +1,6 @@
 [package]
 name = "d3ne"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["lemonxah <lemon.xah@gmail.com>"]
 edition = "2018"
 description = "Rust D3 Node Engine implementation that works with retejs, still a work in progress"
