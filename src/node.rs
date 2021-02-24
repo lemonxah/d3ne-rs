@@ -45,28 +45,28 @@ pub struct Node {
 }
 
 impl Node {
-  pub fn get_number_field(&self, field: &str, out: &str, inputs: &InputData) -> Option<i64> {
-    let v1 = inputs.get(field).map(|i| i.get(out).map(|v| *v.get::<i64>().unwrap()).unwrap());
+  pub fn get_number_field(&self, field: &str, inputs: &InputData) -> Option<i64> {
+    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| *v.get::<i64>().unwrap()).unwrap());
     v1.or(self.data.get(field).map(|n| n.as_i64().unwrap()))
   }
   
-  pub fn get_float_number_field(&self, field: &str, out: &str, inputs: &InputData) -> Option<f64> {
-    let v1 = inputs.get(field).map(|i| i.get(out).map(|v| *v.get::<f64>().unwrap()).unwrap());
+  pub fn get_float_number_field(&self, field: &str, inputs: &InputData) -> Option<f64> {
+    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| *v.get::<f64>().unwrap()).unwrap());
     v1.or(self.data.get(field).map(|n| n.as_f64().unwrap()))
   }
   
-  pub fn get_string_field(&self, field: &str, out: &str, inputs: &InputData) -> Option<String> {
-    let v1 = inputs.get(field).map(|i| i.get(out).map(|v| v.get::<String>().unwrap().clone()).unwrap());
+  pub fn get_string_field(&self, field: &str, inputs: &InputData) -> Option<String> {
+    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| v.get::<String>().unwrap().clone()).unwrap());
     v1.or(self.data.get(field).map(|n| if let Value::String(v) = n { v.clone() } else { "".to_string()}))
   }
   
-  pub fn get_json_field(&self, field: &str, out: &str, inputs: &InputData) -> Option<Value> {
-    let v1 = inputs.get(field).map(|i| i.get(out).map(|v| (v.get::<Value>()).unwrap().clone()).unwrap());
+  pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
+    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| (v.get::<Value>()).unwrap().clone()).unwrap());
     v1.or(self.data.get(field).map(|n| serde_json::from_str(n.as_str().unwrap()).unwrap()))
   }
 
-  pub fn get_as_json_field(&self, field: &str, out: &str, inputs: &InputData) -> Option<Value> {
-    let v1 = inputs.get(field).map(|i| i.get(out).map(|v| {
+  pub fn get_as_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
+    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| {
       if v.is::<Value>() {
         (*v.get::<Value>().unwrap()).clone()
       } else if v.is::<bool>() {
