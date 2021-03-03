@@ -60,16 +60,16 @@ impl <'a, 'b> Engine {
       for conn in &input.connections {
         if !closed_nodes.contains(&conn.node) {
           let out = self.process_node(&nodes[&conn.node], nodes, cache, closed_nodes);
+          input_data.insert(name.clone(), out.clone());
           if conn.output != "action" {
             println!("node: {}, type: {}, contains key: {}, input connection: {}, output: {:?}", &conn.node, nodes[&conn.node].name, out.clone().contains_key(&conn.output), &conn.output, &out);
           }
-          if out.clone().contains_key(&conn.output) {
-            input_data.insert(name.clone(), out);
-          } else {
-            println!("node: {}, type: {}, not found in output", &conn.node, nodes[&conn.node].name);
+          if !out.clone().contains_key(&conn.output) {
             if name != "action" {
+              println!("node: {}, type: {}, not found in output: {}", &conn.node, nodes[&conn.node].name, &conn.output);
+              closed_nodes.push(node.id);
               self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
-              self.disable_node_tree(node, nodes, closed_nodes);
+              // self.disable_node_tree(node, nodes, closed_nodes);
             }
           }
         } else {
