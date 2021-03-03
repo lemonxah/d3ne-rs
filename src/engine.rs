@@ -75,6 +75,7 @@ impl <'a, 'b> Engine {
             }
           }
         } else {
+          println!("output not found: {}, outputdata: {:?}", name, outputdata);
           if name != "action" {
             println!("disabling connections for output: {}", name);
             for connection in &output.connections {
