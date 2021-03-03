@@ -75,10 +75,12 @@ impl <'a, 'b> Engine {
             }
           }
         } else {
-          println!("disabling connections for output: {}", name);
-          for connection in &output.connections {
-            if connection.input == "action" {
-              self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
+          if name != "action" {
+            println!("disabling connections for output: {}", name);
+            for connection in &output.connections {
+              if connection.input == "action" {
+                self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
+              }
             }
           }
         }
