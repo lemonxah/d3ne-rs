@@ -47,6 +47,7 @@ impl <'a, 'b> Engine {
   }
 
   fn process_node(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, cache: &mut HashMap<i64, OutputData>, closed_nodes: &mut Vec<i64>) -> OutputData {
+    println!("current node: {}, node type: {}, disabled nodes: {:?}", node.id, node.name, &closed_nodes);
     if cache.contains_key(&node.id) {
       return cache[&node.id].clone();
     }
@@ -83,7 +84,6 @@ impl <'a, 'b> Engine {
 
   fn process_nodes(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, cache: &mut HashMap<i64, OutputData>, closed_nodes: &mut Vec<i64>) -> i64 {
     let mut id: i64 = node.id;
-    println!("current node: {}, disabled nodes: {:?}", node.id, &closed_nodes);
     if !closed_nodes.contains(&node.id) {
       let outputdata = self.process_node(&node, &nodes, cache, closed_nodes);
       for (name, output) in &node.outputs {
