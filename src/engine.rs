@@ -50,7 +50,6 @@ impl <'a, 'b> Engine {
     if cache.contains_key(&node.id) {
       return cache[&node.id].clone();
     }
-    // println!("current node: {}, node type: {}, disabled nodes: {:?}", node.id, node.name, &closed_nodes);    
     if closed_nodes.contains(&node.id) {
       return Rc::new(HashMap::new());
     }
@@ -61,21 +60,16 @@ impl <'a, 'b> Engine {
         if !closed_nodes.contains(&conn.node) {
           let out = self.process_node(&nodes[&conn.node], nodes, cache, closed_nodes);
           input_data.insert(name.clone(), out.clone());
-          if conn.output != "action" {
-            println!("node: {}, type: {}, contains key: {}, input connection: {}, output: {:?}", &conn.node, nodes[&conn.node].name, out.clone().contains_key(&conn.output), &conn.output, &out);
-          }
+          // if conn.output != "action" {
+          //   println!("node: {}, type: {}, contains key: {}, input connection: {}, output: {:?}", &conn.node, nodes[&conn.node].name, out.clone().contains_key(&conn.output), &conn.output, &out);
+          // }
           if !out.clone().contains_key(&conn.output) {
             if conn.output != "action" {
-              // if !closed_nodes.contains(&node.id) {
-              //   closed_nodes.push(node.id);
-              // }
               self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
               self.disable_node_tree(node, nodes, closed_nodes);
-              println!("node: {}, type: {}, not found in output: {}, closed: {:?}", &conn.node, nodes[&conn.node].name, &conn.output, &closed_nodes);
+              // println!("node: {}, type: {}, not found in output: {}, closed: {:?}", &conn.node, nodes[&conn.node].name, &conn.output, &closed_nodes);
             }
           }
-        } else {
-          println!("not running for input connection: {:?}", conn);
         }
       }
     }
@@ -102,7 +96,7 @@ impl <'a, 'b> Engine {
           if name != "action" {
             for connection in &output.connections {
               if connection.input == name.clone() && !closed_nodes.contains(&connection.node) {
-                println!("disabling connections for output: {}", name);
+                // println!("disabling connections for output: {}", name);
                 self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
               }
             }
@@ -119,7 +113,7 @@ impl <'a, 'b> Engine {
       Some(input) => {
         if input.connections.len() == 1 {
           if !closed_nodes.contains(&node.id) {
-            println!("node disabled: {}", node.id);
+            // println!("node disabled: {}", node.id);
             closed_nodes.push(node.id);
           }
           for (_, output) in node.outputs.clone() {
