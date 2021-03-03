@@ -65,7 +65,7 @@ impl <'a, 'b> Engine {
             println!("node: {}, type: {}, contains key: {}, input connection: {}, output: {:?}", &conn.node, nodes[&conn.node].name, out.clone().contains_key(&conn.output), &conn.output, &out);
           }
           if !out.clone().contains_key(&conn.output) {
-            if name != "action" {
+            if conn.output != "action" {
               println!("node: {}, type: {}, not found in output: {}", &conn.node, nodes[&conn.node].name, &conn.output);
               closed_nodes.push(node.id);
               self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
