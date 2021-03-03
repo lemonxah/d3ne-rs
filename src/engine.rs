@@ -65,9 +65,12 @@ impl <'a, 'b> Engine {
           }
           if out.clone().contains_key(&conn.output) {
             input_data.insert(name.clone(), out);
-          } else if name != "action" {
-            self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
-            self.disable_node_tree(node, nodes, closed_nodes);
+          } else {
+            println!("node: {}, type: {}, not found in output", &conn.node, nodes[&conn.node].name);
+            if name != "action" {
+              self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
+              self.disable_node_tree(node, nodes, closed_nodes);
+            }
           }
         } else {
           println!("not running for input connection: {:?}", conn);
