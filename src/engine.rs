@@ -66,9 +66,9 @@ impl <'a, 'b> Engine {
           }
           if !out.clone().contains_key(&conn.output) {
             if conn.output != "action" {
-              if !closed_nodes.contains(&node.id) {
-                closed_nodes.push(node.id);
-              }
+              // if !closed_nodes.contains(&node.id) {
+              //   closed_nodes.push(node.id);
+              // }
               self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
               self.disable_node_tree(node, nodes, closed_nodes);
               println!("node: {}, type: {}, not found in output: {}, closed: {:?}", &conn.node, nodes[&conn.node].name, &conn.output, &closed_nodes);
@@ -119,9 +119,9 @@ impl <'a, 'b> Engine {
       Some(input) => {
         if input.connections.len() == 1 {
           if !closed_nodes.contains(&node.id) {
+            println!("node disabled: {}", node.id);
             closed_nodes.push(node.id);
           }
-          println!("node disabled: {}", node.id);
           for (_, output) in node.outputs.clone() {
             for connection in &output.connections {
               let _node = &nodes[&connection.node];
