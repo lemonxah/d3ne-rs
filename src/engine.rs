@@ -68,8 +68,8 @@ impl <'a, 'b> Engine {
             if conn.output != "action" {
               closed_nodes.push(node.id);
               self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
+              self.disable_node_tree(node, nodes, closed_nodes);
               println!("node: {}, type: {}, not found in output: {}, closed: {:?}", &conn.node, nodes[&conn.node].name, &conn.output, &closed_nodes);
-              // self.disable_node_tree(node, nodes, closed_nodes);
             }
           }
         } else {
@@ -97,14 +97,14 @@ impl <'a, 'b> Engine {
             }
           }
         } else {
-          // if name != "action" {
-          //   println!("disabling connections for output: {}", name);
-          //   for connection in &output.connections {
-          //     if connection.input == "action" {
-          //       self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
-          //     }
-          //   }
-          // }
+          if name != "action" {
+            for connection in &output.connections {
+              if connection.input == "action" && !closed_nodes.contains(&connection.node) {
+                println!("disabling connections for output: {}", name);
+                self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
+              }
+            }
+          }
         }
       }
     }
