@@ -64,6 +64,7 @@ impl <'a, 'b> Engine {
 
   fn process_nodes(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, cache: &mut HashMap<i64, OutputData>, closed_nodes: &mut Vec<i64>) -> i64 {
     let mut id: i64 = node.id;
+    println!("current node: {}, disabled nodes: {:?}", node.id, &closed_nodes);
     if !closed_nodes.contains(&node.id) {
       let outputdata = self.process_node(&node, &nodes, cache, closed_nodes);
       for (name, output) in &node.outputs {
@@ -75,6 +76,7 @@ impl <'a, 'b> Engine {
           }
         } else {
           if name == "true" || name == "false" {
+            println!("disabling connections for output: {}", name);
             for connection in &output.connections {
               self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
             }
@@ -91,6 +93,7 @@ impl <'a, 'b> Engine {
       Some(input) => {
         if input.connections.len() == 1 {
           closed_nodes.push(node.id);
+          println!("node disabled: {}", node.id);
           for (_, output) in node.outputs.clone().into_iter().filter(|(name, _)| name == "action" || name == "true" || name == "false") {
             for connection in &output.connections {
               self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
