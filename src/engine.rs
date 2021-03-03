@@ -66,7 +66,9 @@ impl <'a, 'b> Engine {
           }
           if !out.clone().contains_key(&conn.output) {
             if conn.output != "action" {
-              closed_nodes.push(node.id);
+              if !closed_nodes.contains(&node.id) {
+                closed_nodes.push(node.id);
+              }
               self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
               self.disable_node_tree(node, nodes, closed_nodes);
               println!("node: {}, type: {}, not found in output: {}, closed: {:?}", &conn.node, nodes[&conn.node].name, &conn.output, &closed_nodes);
@@ -99,7 +101,7 @@ impl <'a, 'b> Engine {
         } else {
           if name != "action" {
             for connection in &output.connections {
-              if connection.input == "action" && !closed_nodes.contains(&connection.node) {
+              if connection.input == name.clone() && !closed_nodes.contains(&connection.node) {
                 println!("disabling connections for output: {}", name);
                 self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
               }
@@ -116,7 +118,9 @@ impl <'a, 'b> Engine {
       None => (),
       Some(input) => {
         if input.connections.len() == 1 {
-          closed_nodes.push(node.id);
+          if !closed_nodes.contains(&node.id) {
+            closed_nodes.push(node.id);
+          }
           println!("node disabled: {}", node.id);
           for (_, output) in node.outputs.clone() {
             for connection in &output.connections {
