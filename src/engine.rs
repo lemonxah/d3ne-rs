@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use serde_json::Value;
 use std::collections::HashMap;
 use crate::node::*;
@@ -50,15 +51,32 @@ impl <'a, 'b> Engine {
       return cache[&node.id].clone();
     }
 
+    if closed_nodes.contains(&node.id) {
+      return Rc::new(HashMap::new());
+    }
+
     let mut input_data = InputData::new();
     for (name, input) in &node.inputs {
       for conn in &input.connections {
-        let out = self.process_node(&nodes[&conn.node], nodes, cache, closed_nodes);
-        input_data.insert(name.clone(), out);
+        if !closed_nodes.contains(&conn.node) {
+          let out = self.process_node(&nodes[&conn.node], nodes, cache, closed_nodes);
+          if out.clone().contains_key(&conn.output) {
+            input_data.insert(name.clone(), out);
+          } else {
+            println!("should close node: {}", &conn.node);
+            self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
+            self.disable_node_tree(node, nodes, closed_nodes);
+          }
+        } else {
+          println!("not running for input connection: {:?}", conn);
+        }
       }
     }
-    let output = self.workers.call(&node.name, node.clone(), input_data).unwrap();
-    cache.insert(node.id, output.clone());
+    let mut output = Rc::new(HashMap::new());
+    if !closed_nodes.contains(&node.id) {
+      output = self.workers.call(&node.name, node.clone(), input_data).unwrap();
+      cache.insert(node.id, output.clone());
+    }
     return output;
   }
 
