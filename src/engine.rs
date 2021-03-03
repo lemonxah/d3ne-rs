@@ -60,10 +60,10 @@ impl <'a, 'b> Engine {
       for conn in &input.connections {
         if !closed_nodes.contains(&conn.node) {
           let out = self.process_node(&nodes[&conn.node], nodes, cache, closed_nodes);
-          dbg!(&out, &conn.output);
           if out.clone().contains_key(&conn.output) {
             input_data.insert(name.clone(), out);
-          } else {
+          } else if name != "action" {
+            dbg!(&out, &conn.output);
             println!("should close node: {}", &conn.node);
             self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
             self.disable_node_tree(node, nodes, closed_nodes);
@@ -94,7 +94,6 @@ impl <'a, 'b> Engine {
             }
           }
         } else {
-          println!("output not found: {}, outputdata: {:?}", name, outputdata);
           if name != "action" {
             println!("disabling connections for output: {}", name);
             for connection in &output.connections {
