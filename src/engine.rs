@@ -40,11 +40,12 @@ impl <'a, 'b> Engine {
 
   pub fn process(&self, nodes: &HashMap<i64, Node>, start_node_id: i64) -> Result<OutputData, Error> {
     let mut cache: HashMap<i64, OutputData> = HashMap::new();
-    let end_id = self.process_nodes(&nodes[&start_node_id], &nodes, &mut cache);
+    let mut closed_nodes: Vec<i64> = Vec::new();
+    let end_id = self.process_nodes(&nodes[&start_node_id], &nodes, &mut cache, &mut closed_nodes);
     Ok(cache[&end_id].clone())
   }
 
-  fn process_node(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, cache: &mut HashMap<i64, OutputData>) -> OutputData {
+  fn process_node(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, cache: &mut HashMap<i64, OutputData>, closed_nodes: &mut Vec<i64>) -> OutputData {
     if cache.contains_key(&node.id) {
       return cache[&node.id].clone();
     }
@@ -52,7 +53,7 @@ impl <'a, 'b> Engine {
     let mut input_data = InputData::new();
     for (name, input) in &node.inputs {
       for conn in &input.connections {
-        let out = self.process_node(&nodes[&conn.node], nodes, cache);
+        let out = self.process_node(&nodes[&conn.node], nodes, cache, closed_nodes);
         input_data.insert(name.clone(), out);
       }
     }
@@ -61,16 +62,42 @@ impl <'a, 'b> Engine {
     return output;
   }
 
-  fn process_nodes(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, cache: &mut HashMap<i64, OutputData>) -> i64 {
-    let outputdata = self.process_node(&node, &nodes, cache);
+  fn process_nodes(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, cache: &mut HashMap<i64, OutputData>, closed_nodes: &mut Vec<i64>) -> i64 {
     let mut id: i64 = node.id;
-    for (name, output) in &node.outputs {
-      if outputdata.contains_key(name) {
-        for connection in &output.connections {
-          id = self.process_nodes(&nodes[&connection.node], &nodes, cache);
+    if !closed_nodes.contains(&node.id) {
+      let outputdata = self.process_node(&node, &nodes, cache, closed_nodes);
+      for (name, output) in &node.outputs {
+        if outputdata.contains_key(name) {
+          for connection in &output.connections {
+            if !closed_nodes.contains(&connection.node) {
+              id = self.process_nodes(&nodes[&connection.node], &nodes, cache, closed_nodes);
+            }
+          }
+        } else {
+          if name == "true" || name == "false" {
+            for connection in &output.connections {
+              self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
+            }
+          }
         }
       }
     }
     id
+  }
+
+  fn disable_node_tree(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, closed_nodes: &mut Vec<i64>) {
+    match node.inputs.get("action") {
+      None => (),
+      Some(input) => {
+        if input.connections.len() == 1 {
+          closed_nodes.push(node.id);
+          for (_, output) in node.outputs.clone().into_iter().filter(|(name, _)| name == "action" || name == "true" || name == "false") {
+            for connection in &output.connections {
+              self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
+            }
+          }
+        }
+      },
+    }
   }
 }
