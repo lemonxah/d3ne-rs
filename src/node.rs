@@ -80,7 +80,7 @@ impl Node {
       } else {
         json!({})
       }
-    }).unwrap());
+    }).unwrap_or(json!({})));
     v1.or(self.data.get(field).map(|v| v.clone()))
   }
 
