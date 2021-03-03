@@ -60,6 +60,7 @@ impl <'a, 'b> Engine {
       for conn in &input.connections {
         if !closed_nodes.contains(&conn.node) {
           let out = self.process_node(&nodes[&conn.node], nodes, cache, closed_nodes);
+          dbg!(&out, &conn.output);
           if out.clone().contains_key(&conn.output) {
             input_data.insert(name.clone(), out);
           } else {
