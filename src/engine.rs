@@ -47,11 +47,10 @@ impl <'a, 'b> Engine {
   }
 
   fn process_node(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, cache: &mut HashMap<i64, OutputData>, closed_nodes: &mut Vec<i64>) -> OutputData {
-    println!("current node: {}, node type: {}, disabled nodes: {:?}", node.id, node.name, &closed_nodes);
     if cache.contains_key(&node.id) {
       return cache[&node.id].clone();
     }
-
+    println!("current node: {}, node type: {}, disabled nodes: {:?}", node.id, node.name, &closed_nodes);    
     if closed_nodes.contains(&node.id) {
       return Rc::new(HashMap::new());
     }
@@ -61,10 +60,10 @@ impl <'a, 'b> Engine {
       for conn in &input.connections {
         if !closed_nodes.contains(&conn.node) {
           let out = self.process_node(&nodes[&conn.node], nodes, cache, closed_nodes);
+          dbg!(&out, &conn.output);
           if out.clone().contains_key(&conn.output) {
             input_data.insert(name.clone(), out);
           } else if name != "action" {
-            dbg!(&out, &conn.output);
             println!("should close node: {}", &conn.node);
             self.disable_node_tree(&nodes[&conn.node], nodes, closed_nodes);
             self.disable_node_tree(node, nodes, closed_nodes);
