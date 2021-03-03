@@ -75,9 +75,9 @@ impl <'a, 'b> Engine {
             }
           }
         } else {
-          if name == "true" || name == "false" {
-            println!("disabling connections for output: {}", name);
-            for connection in &output.connections {
+          println!("disabling connections for output: {}", name);
+          for connection in &output.connections {
+            if connection.input == "action" {
               self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
             }
           }
@@ -94,9 +94,17 @@ impl <'a, 'b> Engine {
         if input.connections.len() == 1 {
           closed_nodes.push(node.id);
           println!("node disabled: {}", node.id);
-          for (_, output) in node.outputs.clone().into_iter().filter(|(name, _)| name == "action" || name == "true" || name == "false") {
+          for (_, output) in node.outputs.clone() {
             for connection in &output.connections {
-              self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
+              let _node = &nodes[&connection.node];
+              match _node.inputs.get("action") {
+                None => (),
+                Some(input) => {
+                  if let Some(_) = input.connections.clone().into_iter().find(|c| c.node == connection.node) {
+                    self.disable_node_tree(&nodes[&connection.node], nodes, closed_nodes);
+                  }
+                }
+              }
             }
           }
         }
