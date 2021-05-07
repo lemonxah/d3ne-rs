@@ -47,22 +47,42 @@ pub struct Node {
 
 impl Node {
   pub fn get_number_field(&self, field: &str, inputs: &InputData) -> Option<i64> {
-    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| *v.as_ref().unwrap().get::<i64>().unwrap())).flatten();
+    let v1 = inputs.get(field)
+      .and_then(|i| i.get(&self.inputs[field].connections[0].output))
+      .and_then(|v| match v.as_ref() {
+        Ok(rv) => rv.get::<i64>().map(|r| *r),
+        Err(_) => None
+      });
     v1.or(self.data.get(field).map(|n| n.as_i64()).flatten())
   }
   
   pub fn get_float_number_field(&self, field: &str, inputs: &InputData) -> Option<f64> {
-    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| *v.as_ref().unwrap().get::<f64>().unwrap())).flatten();
+    let v1 = inputs.get(field)
+      .and_then(|i| i.get(&self.inputs[field].connections[0].output))
+      .and_then(|v| match v.as_ref() {
+        Ok(rv) => rv.get::<f64>().map(|r| *r),
+        Err(_) => None
+      });
     v1.or(self.data.get(field).map(|n| n.as_f64()).flatten())
   }
   
   pub fn get_string_field(&self, field: &str, inputs: &InputData) -> Option<String> {
-    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| v.as_ref().unwrap().get::<String>().unwrap().clone())).flatten();
+    let v1 = inputs.get(field)
+      .and_then(|i| i.get(&self.inputs[field].connections[0].output))
+      .and_then(|v| match v.as_ref() {
+        Ok(rv) => rv.get::<String>().map(|r| r.clone()),
+        Err(_) => None
+      });
     v1.or(self.data.get(field).map(|n| if let Value::String(v) = n { v.clone() } else { "".to_string()}))
   }
   
   pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
-    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| (v.as_ref().unwrap().get::<Value>()).unwrap().clone())).flatten();
+    let v1 = inputs.get(field)
+      .and_then(|i| i.get(&self.inputs[field].connections[0].output))
+      .and_then(|v| match v.as_ref() {
+        Ok(rv) => rv.get::<Value>().map(|r| r.clone()),
+        Err(_) => None
+      });
     v1.or(self.data.get(field).map(|n| serde_json::from_str(n.as_str().unwrap()).unwrap()))
   }
 
