@@ -22,16 +22,17 @@ impl IOData {
 
 #[macro_export ]macro_rules! iodata {
   ($data: expr) => {
-    IOData {
+    Ok(IOData {
       data: Box::new($data)
-    }
+    })
   };
 }
 
+pub type NodeResult = Result<IOData, anyhow::Error>;
 #[allow(dead_code)]
-pub type OutputData = Rc<HashMap<String, IOData>>;
+pub type OutputData = Rc<HashMap<String, NodeResult>>;
 #[allow(dead_code)]
-pub type InputData = HashMap<String, Rc<HashMap<String, IOData>>>;
+pub type InputData = HashMap<String, Rc<HashMap<String, NodeResult>>>;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Node {
@@ -46,39 +47,42 @@ pub struct Node {
 
 impl Node {
   pub fn get_number_field(&self, field: &str, inputs: &InputData) -> Option<i64> {
-    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| *v.get::<i64>().unwrap()).unwrap());
-    v1.or(self.data.get(field).map(|n| n.as_i64().unwrap()))
+    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| *v.as_ref().unwrap().get::<i64>().unwrap())).flatten();
+    v1.or(self.data.get(field).map(|n| n.as_i64()).flatten())
   }
   
   pub fn get_float_number_field(&self, field: &str, inputs: &InputData) -> Option<f64> {
-    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| *v.get::<f64>().unwrap()).unwrap());
-    v1.or(self.data.get(field).map(|n| n.as_f64().unwrap()))
+    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| *v.as_ref().unwrap().get::<f64>().unwrap())).flatten();
+    v1.or(self.data.get(field).map(|n| n.as_f64()).flatten())
   }
   
   pub fn get_string_field(&self, field: &str, inputs: &InputData) -> Option<String> {
-    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| v.get::<String>().unwrap().clone()).unwrap());
+    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| v.as_ref().unwrap().get::<String>().unwrap().clone())).flatten();
     v1.or(self.data.get(field).map(|n| if let Value::String(v) = n { v.clone() } else { "".to_string()}))
   }
   
   pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
-    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| (v.get::<Value>()).unwrap().clone()).unwrap());
+    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| (v.as_ref().unwrap().get::<Value>()).unwrap().clone())).flatten();
     v1.or(self.data.get(field).map(|n| serde_json::from_str(n.as_str().unwrap()).unwrap()))
   }
 
   pub fn get_as_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
-    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|v| {
-      if v.is::<Value>() {
-        (*v.get::<Value>().unwrap()).clone()
-      } else if v.is::<bool>() {
-        serde_json::from_str(&v.get::<bool>().unwrap().to_string()).unwrap()
-      } else if v.is::<i64>() {
-        serde_json::from_str(&v.get::<i64>().unwrap().to_string()).unwrap()
-      } else if v.is::<f64>() {
-        serde_json::from_str(&v.get::<f64>().unwrap().to_string()).unwrap()
-      } else if v.is::<String>() {
-        Value::String(v.get::<String>().unwrap().clone())
-      } else {
-        json!({})
+    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|r| {
+      match r {
+        Ok(v) => if v.is::<Value>() {
+            (*v.get::<Value>().unwrap()).clone()
+          } else if v.is::<bool>() {
+            serde_json::from_str(&v.get::<bool>().unwrap().to_string()).unwrap()
+          } else if v.is::<i64>() {
+            serde_json::from_str(&v.get::<i64>().unwrap().to_string()).unwrap()
+          } else if v.is::<f64>() {
+            serde_json::from_str(&v.get::<f64>().unwrap().to_string()).unwrap()
+          } else if v.is::<String>() {
+            Value::String(v.get::<String>().unwrap().clone())
+          } else {
+            json!({})
+          }
+        Err(_) => json!({})
       }
     }).unwrap_or(json!({})));
     v1.or(self.data.get(field).map(|v| v.clone()))
