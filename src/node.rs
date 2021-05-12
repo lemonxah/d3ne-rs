@@ -87,7 +87,7 @@ impl Node {
         } else if v.is::<String>() {
           Ok(Value::String(v.get::<String>().unwrap().clone()))
         } else {
-          Ok(json!({}))
+          Err(anyhow!(format!("Node({}): no bool, i64, f64 or String value found", &self.id)))
         },
         Err(e) => Err(anyhow!(format!("{:?}",e)))
       }
@@ -95,6 +95,31 @@ impl Node {
     match v1.or(self.data.get(field).map(|v| Ok(v.clone()))) {
       Some(v) => v,
       None => Err(anyhow!(format!("Node({}): no bool, i64, f64 or String value found", &self.id)))
+    }
+  }
+
+  pub fn get_as_json_field_or_default(&self, field: &str, inputs: &InputData) -> Result<Value> {
+    let v1 = inputs.get(field).and_then(|i| i.get(&self.inputs[field].connections[0].output).map(|r| {
+      match r {
+        Ok(v) => if v.is::<Value>() {
+          Ok((*v.get::<Value>().unwrap()).clone())
+        } else if v.is::<bool>() {
+          Ok(serde_json::from_str(&v.get::<bool>().unwrap().to_string()).unwrap())
+        } else if v.is::<i64>() {
+          Ok(serde_json::from_str(&v.get::<i64>().unwrap().to_string()).unwrap())
+        } else if v.is::<f64>() {
+          Ok(serde_json::from_str(&v.get::<f64>().unwrap().to_string()).unwrap())
+        } else if v.is::<String>() {
+          Ok(Value::String(v.get::<String>().unwrap().clone()))
+        } else {
+          Ok(json!({}))
+        },
+        Err(e) => Err(anyhow!(format!("{:?}",e)))
+      }
+    }));
+    match v1.or(self.data.get(field).map(|v| Ok(v.clone()))) {
+      Some(v) => v,
+      None => Ok(json!({}))
     }
   }
 
