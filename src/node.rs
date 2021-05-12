@@ -27,8 +27,9 @@ impl IOData {
     })
   };
 }
+type Result<A> = std::result::Result<A, anyhow::Error>;
 
-pub type NodeResult = Result<IOData, anyhow::Error>;
+pub type NodeResult = Result<IOData>;
 #[allow(dead_code)]
 pub type OutputData = Rc<HashMap<String, NodeResult>>;
 #[allow(dead_code)]
@@ -46,66 +47,55 @@ pub struct Node {
 }
 
 impl Node {
-  pub fn get_number_field(&self, field: &str, inputs: &InputData) -> Option<i64> {
-    let v1 = inputs.get(field)
+  fn get_field<A>(&self, field: &str, inputs: &InputData, def: A, deref: Box<dyn Fn(&A) -> A>, convert: Box<dyn Fn(&Value) -> A> ) -> Result<A> where A: 'static {
+    let v1: Option<Result<A>> = inputs.get(field)
       .and_then(|i| i.get(&self.inputs[field].connections[0].output))
-      .and_then(|v| match v.as_ref() {
-        Ok(rv) => rv.get::<i64>().map(|r| *r),
-        Err(_) => None
-      });
-    v1.or(self.data.get(field).map(|n| n.as_i64()).flatten())
+      .map(|v| v.as_ref().map_err(|e| anyhow!(format!("{:?}", e))).map(|rv| rv.get::<A>().map(deref).unwrap_or(def)));
+    match v1.or(self.data.get(field).map(|n| Ok(convert(n)))) {
+      Some(v) => v,
+      None => Err(anyhow!(format!("no {:?} value found", std::any::type_name::<A>())))
+    }
   }
   
-  pub fn get_float_number_field(&self, field: &str, inputs: &InputData) -> Option<f64> {
-    let v1 = inputs.get(field)
-      .and_then(|i| i.get(&self.inputs[field].connections[0].output))
-      .and_then(|v| match v.as_ref() {
-        Ok(rv) => rv.get::<f64>().map(|r| *r),
-        Err(_) => None
-      });
-    v1.or(self.data.get(field).map(|n| n.as_f64()).flatten())
+  pub fn get_number_field(&self, field: &str, inputs: &InputData) -> Result<i64> {
+    self.get_field(field, inputs, i64::MIN, Box::new(|r| *r), Box::new(|v| v.as_i64().unwrap()))
   }
   
-  pub fn get_string_field(&self, field: &str, inputs: &InputData) -> Option<String> {
-    let v1 = inputs.get(field)
-      .and_then(|i| i.get(&self.inputs[field].connections[0].output))
-      .and_then(|v| match v.as_ref() {
-        Ok(rv) => rv.get::<String>().map(|r| r.clone()),
-        Err(_) => None
-      });
-    v1.or(self.data.get(field).map(|n| if let Value::String(v) = n { v.clone() } else { "".to_string()}))
-  }
-  
-  pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
-    let v1 = inputs.get(field)
-      .and_then(|i| i.get(&self.inputs[field].connections[0].output))
-      .and_then(|v| match v.as_ref() {
-        Ok(rv) => rv.get::<Value>().map(|r| r.clone()),
-        Err(_) => None
-      });
-    v1.or(self.data.get(field).map(|n| serde_json::from_str(n.as_str().unwrap()).unwrap()))
+  pub fn get_float_number_field(&self, field: &str, inputs: &InputData) -> Result<f64> {
+    self.get_field(field, inputs, f64::MIN, Box::new(|r| *r), Box::new(|v| v.as_f64().unwrap()))
   }
 
-  pub fn get_as_json_field(&self, field: &str, inputs: &InputData) -> Option<Value> {
-    let v1 = inputs.get(field).map(|i| i.get(&self.inputs[field].connections[0].output).map(|r| {
+  pub fn get_string_field(&self, field: &str, inputs: &InputData) -> Result<String> {
+    self.get_field(field, inputs, String::default(), Box::new(|r| r.clone()), Box::new(|n| if let Value::String(v) = n { v.clone() } else { "".to_string()}))
+  }
+  
+  pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Result<Value> {
+    self.get_field(field, inputs, json!({}), Box::new(|r| r.clone()), Box::new(|n| serde_json::from_str(n.as_str().unwrap()).unwrap()))
+  }
+
+  pub fn get_as_json_field(&self, field: &str, inputs: &InputData) -> Result<Value> {
+    let v1 = inputs.get(field).and_then(|i| i.get(&self.inputs[field].connections[0].output).map(|r| {
       match r {
         Ok(v) => if v.is::<Value>() {
-            (*v.get::<Value>().unwrap()).clone()
-          } else if v.is::<bool>() {
-            serde_json::from_str(&v.get::<bool>().unwrap().to_string()).unwrap()
-          } else if v.is::<i64>() {
-            serde_json::from_str(&v.get::<i64>().unwrap().to_string()).unwrap()
-          } else if v.is::<f64>() {
-            serde_json::from_str(&v.get::<f64>().unwrap().to_string()).unwrap()
-          } else if v.is::<String>() {
-            Value::String(v.get::<String>().unwrap().clone())
-          } else {
-            json!({})
-          }
-        Err(_) => json!({})
+          Ok((*v.get::<Value>().unwrap()).clone())
+        } else if v.is::<bool>() {
+          Ok(serde_json::from_str(&v.get::<bool>().unwrap().to_string()).unwrap())
+        } else if v.is::<i64>() {
+          Ok(serde_json::from_str(&v.get::<i64>().unwrap().to_string()).unwrap())
+        } else if v.is::<f64>() {
+          Ok(serde_json::from_str(&v.get::<f64>().unwrap().to_string()).unwrap())
+        } else if v.is::<String>() {
+          Ok(Value::String(v.get::<String>().unwrap().clone()))
+        } else {
+          Err(anyhow!("no bool, i64, f64 or String value found"))
+        },
+        Err(e) => Err(anyhow!(format!("{:?}",e)))
       }
-    }).unwrap_or(json!({})));
-    v1.or(self.data.get(field).map(|v| v.clone()))
+    }));
+    match v1.or(self.data.get(field).map(|v| Ok(v.clone()))) {
+      Some(v) => v,
+      None => Err(anyhow!("no bool, i64, f64 or String value found"))
+    }
   }
 
 }
