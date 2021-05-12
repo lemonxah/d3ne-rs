@@ -53,7 +53,7 @@ impl Node {
       .map(|v| v.as_ref().map_err(|e| anyhow!(format!("{:?}", e))).map(|rv| rv.get::<A>().map(deref).unwrap_or(def)));
     match v1.or(self.data.get(field).map(|n| Ok(convert(n)))) {
       Some(v) => v,
-      None => Err(anyhow!(format!("no {:?} value found", std::any::type_name::<A>())))
+      None => Err(anyhow!(format!("Node({}): no {:?} value found", &self.id, std::any::type_name::<A>())))
     }
   }
   
@@ -87,14 +87,14 @@ impl Node {
         } else if v.is::<String>() {
           Ok(Value::String(v.get::<String>().unwrap().clone()))
         } else {
-          Err(anyhow!("no bool, i64, f64 or String value found"))
+          Ok(json!({}))
         },
         Err(e) => Err(anyhow!(format!("{:?}",e)))
       }
     }));
     match v1.or(self.data.get(field).map(|v| Ok(v.clone()))) {
       Some(v) => v,
-      None => Err(anyhow!("no bool, i64, f64 or String value found"))
+      None => Err(anyhow!(format!("Node({}): no bool, i64, f64 or String value found", &self.id)))
     }
   }
 
