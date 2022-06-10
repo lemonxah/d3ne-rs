@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use crate::target::{Inputs, Outputs};
 use std::collections::HashMap;
+use anyhow::Result;
 
 #[derive(Debug)]
 pub struct IOData {
@@ -20,8 +21,6 @@ impl IOData {
     return self.data.downcast_ref::<A>();
   }
 }
-
-type Result<A> = std::result::Result<A, anyhow::Error>;
 
 #[derive(Debug)]
 pub struct NodeResult(pub Result<IOData>);
