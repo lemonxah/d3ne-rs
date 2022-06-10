@@ -7,7 +7,6 @@ pub struct Workers {
 
 #[allow(dead_code)]
 impl Workers {
-
   pub fn new() -> Workers {
     Workers { map: HashMap::new() }
   }
@@ -16,7 +15,15 @@ impl Workers {
     self.map.insert(name.to_string(), worker);
   }
 
-  pub fn call(&self, name: &str, node: Node, input: InputData) -> Option<OutputData> {
+
+}
+
+pub trait CallableWorkers {
+  fn call(&self, name: &str, node: Node, input: InputData) -> Option<OutputData>;
+}
+
+impl CallableWorkers for Workers{
+  fn call(&self, name: &str, node: Node, input: InputData) -> Option<OutputData> {
     self.map.get(name).map(|f| f(node, input))
   }
 }

@@ -3,11 +3,12 @@ use serde_json::Value;
 use std::collections::HashMap;
 use crate::node::*;
 use crate::workers::Workers;
+use crate::workers::CallableWorkers;
 
 #[allow(dead_code)]
 pub struct Engine {
   id: String,
-  workers: Workers,
+  workers: Box<dyn CallableWorkers>,
 }
 
 #[allow(dead_code)]
@@ -18,10 +19,10 @@ pub enum Error {
 
 #[allow(dead_code)]
 impl <'a, 'b> Engine {
-  pub fn new(id: &str, workers: Workers) -> Engine {
+    pub fn new(id: &str, workers: Box<dyn CallableWorkers>) -> Engine {
     Engine {
       id: id.to_string(),
-      workers: workers,
+      workers
     }
   }
 
