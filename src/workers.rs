@@ -1,22 +1,37 @@
 use crate::node::*;
 use std::collections::HashMap;
+use thiserror::Error;
 
-pub struct Workers {
-  map: HashMap<String, Box<dyn Fn<(Node, InputData), Output = OutputData>>>
+#[derive(Debug, Error)]
+pub enum WorkerError {
+  #[error("Worker Not Found: `{0}`")]
+  WorkerNotFound(String),
+}
+
+pub struct Workers(HashMap<String, Box<dyn Fn<(Node, InputData), Output = OutputData>>>);
+
+impl Workers {
+  pub fn call(&self, name: &str, node: Node, input: InputData) -> Result<OutputData, WorkerError> {
+    self.0.get(name).map(|f| f(node, input)).ok_or(WorkerError::WorkerNotFound(name.into()))
+  }
+}
+
+pub struct WorkersBuilder {
+  data: Vec<(String, Box<dyn Fn<(Node, InputData), Output = OutputData>>)>
 }
 
 #[allow(dead_code)]
-impl Workers {
-
-  pub fn new() -> Workers {
-    Workers { map: HashMap::new() }
+impl WorkersBuilder {
+  pub fn new() -> WorkersBuilder {
+    WorkersBuilder { data: vec![] }
   }
 
-  pub fn put(self: &mut Self, name: &str, worker: Box<dyn Fn<(Node, InputData), Output = OutputData>>) -> () {
-    self.map.insert(name.to_string(), worker);
+  pub fn add(&mut self, name: &str, worker: Box<dyn Fn<(Node, InputData), Output = OutputData>>) -> &mut Self {
+    self.data.push((name.to_string(), worker));
+    self
   }
 
-  pub fn call(&self, name: &str, node: Node, input: InputData) -> Option<OutputData> {
-    self.map.get(name).map(|f| f(node, input))
+  pub fn build(self) -> Workers {
+    Workers(self.data.into_iter().collect::<HashMap<_,_>>())
   }
 }

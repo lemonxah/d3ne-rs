@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::rc::Rc;
 use std::any::{Any, TypeId};
 use serde::{Deserialize, Serialize};
@@ -20,20 +21,91 @@ impl IOData {
   }
 }
 
-#[macro_export ]macro_rules! iodata {
-  ($data: expr) => {
-    Ok(IOData {
-      data: Box::new($data)
-    })
-  };
-}
 type Result<A> = std::result::Result<A, anyhow::Error>;
 
-pub type NodeResult = Result<IOData>;
+#[derive(Debug)]
+pub struct NodeResult(Result<IOData>);
+
+impl Deref for NodeResult {
+    type Target = Result<IOData>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[allow(dead_code)]
-pub type OutputData = Rc<HashMap<String, NodeResult>>;
+#[derive(Debug)]
+pub struct OutputData(Rc<HashMap<String, NodeResult>>);
+
+impl From<Rc<HashMap<String, NodeResult>>> for OutputData {
+    fn from(inner: Rc<HashMap<String, NodeResult>>) -> Self {
+        OutputData(inner)
+    }
+}
+
+pub struct OutputDataBuilder<'a> {
+  data: Vec<(&'a str, Box<dyn Any>)>
+}
+
+impl <'a> OutputDataBuilder<'a> {
+  pub fn new() -> OutputDataBuilder<'a> {
+    OutputDataBuilder { data: vec![] }
+  }
+
+  pub fn add_data(mut self, key: &'a str, data: Box<dyn Any>) -> OutputDataBuilder<'a> {
+    self.data.push((key, data));
+    self
+  }
+
+  pub fn build(self) -> OutputData {
+    OutputData(Rc::new(self.data.into_iter().map(|(key, data)| (key.into(), NodeResult(Ok(IOData { data })))).collect::<HashMap<_,_>>() ))
+  }
+
+}
+
+impl Deref for OutputData {
+    type Target = Rc<HashMap<String, NodeResult>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[allow(dead_code)]
-pub type InputData = HashMap<String, Rc<HashMap<String, NodeResult>>>;
+#[derive(Debug)]
+pub struct InputData(HashMap<String, OutputData>);
+
+pub struct InputDataBuilder {
+  data: Vec<(String, OutputData)>
+}
+
+impl InputDataBuilder {
+  pub fn new() -> InputDataBuilder {
+    InputDataBuilder { data: vec![] }
+  }
+
+  pub fn add_data(mut self, key: String, data: OutputData) -> InputDataBuilder {
+    self.data.push((key, data));
+    self
+  }
+
+  pub fn build(self) -> InputData {
+    InputData(self.data.into_iter().map(|(key, data)| (key.into(), data)).collect::<HashMap<_,_>>())
+  }
+
+}
+
+impl From<HashMap<String, OutputData>> for InputData {
+    fn from(inner: HashMap<String, OutputData>) -> Self {
+        InputData(inner)
+    }
+}
+
+impl Deref for InputData {
+  type Target = HashMap<String, OutputData>;
+  fn deref(&self) -> &Self::Target {
+      &self.0
+  }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Node {
@@ -48,7 +120,7 @@ pub struct Node {
 
 impl Node {
   fn get_field<A>(&self, field: &str, inputs: &InputData, def: A, deref: Box<dyn Fn(&A) -> A>, convert: Box<dyn Fn(&Value) -> A>, noerr: Option<A> ) -> Result<A> where A: 'static {
-    let v1: Option<Result<A>> = inputs.get(field)
+    let v1: Option<Result<A>> = inputs.0.get(field)
       .and_then(|i| i.get(&self.inputs[field].connections[0].output))
       .map(|v| v.as_ref().map_err(|e| anyhow!(format!("{:?}", e))).map(|rv| rv.get::<A>().map(deref).unwrap_or(def)));
     match v1.or(self.data.get(field).map(|n| Ok(convert(n)))) {
@@ -79,7 +151,7 @@ impl Node {
   pub fn get_as_json_field_or(&self, field: &str, inputs: &InputData, default: Option<Value>) -> Result<Value> {
     let v1 = inputs.get(field).and_then(|i| i.get(&self.inputs[field].connections[0].output).map(|r| {
       match r {
-        Ok(v) => if v.is::<Value>() {
+        NodeResult(Ok(v)) => if v.is::<Value>() {
           Ok((*v.get::<Value>().unwrap()).clone())
         } else if v.is::<bool>() {
           Ok(serde_json::from_str(&v.get::<bool>().unwrap().to_string()).unwrap())
@@ -92,7 +164,7 @@ impl Node {
         } else {
           default.clone().ok_or(anyhow!(format!("Node({}): no bool, i64, f64 or String value found", &self.id)))
         },
-        Err(e) => Err(anyhow!(format!("{:?}",e)))
+        NodeResult(Err(e)) => Err(anyhow!(format!("{:?}",e)))
       }
     }));
     match v1.or(self.data.get(field).map(|v| Ok(v.clone()))) {

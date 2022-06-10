@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Deref};
 use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -25,5 +25,34 @@ pub struct Output {
   pub connections: Vec<OutputConnection>,
 }
 
-pub type Inputs = HashMap<String, Input>;
-pub type Outputs = HashMap<String, Output>;
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Inputs(HashMap<String, Input>);
+
+impl Inputs {
+  pub fn inner(&self) -> &HashMap<String, Input> {
+    &self.0
+  }
+}
+
+impl Deref for Inputs {
+  type Target = HashMap<String, Input>;
+  fn deref(&self) -> &Self::Target {
+      &self.0
+  }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Outputs(HashMap<String, Output>);
+
+impl Outputs {
+  pub fn inner(&self) -> &HashMap<String, Output> {
+    &self.0
+  }
+}
+
+impl Deref for Outputs {
+    type Target = HashMap<String, Output>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}

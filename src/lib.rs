@@ -4,19 +4,23 @@
 #[macro_use] extern crate serde_json;
 #[macro_use] extern crate anyhow;
 
-pub mod target;
-pub mod group;
-#[macro_use] pub mod node;
-pub mod workers;
-pub mod engine;
+mod target;
+mod group;
+#[macro_use] mod node;
+mod workers;
+mod engine;
+
+pub use target::*;
+pub use group::*;
+pub use node::*;
+pub use workers::*;
+pub use engine::*;
 
 #[cfg(test)]
 mod tests {
   use crate::node::*;
   use crate::engine::Engine;
-  use crate::workers::Workers;
-  use std::collections::HashMap;
-  use std::rc::Rc;
+  use crate::workers::WorkersBuilder;
 
   #[test]
   fn multiply_works() {
@@ -162,13 +166,12 @@ mod tests {
     }
     "#;
 
-    let mut workers = Workers::new();
-
-    workers.put("Number", Box::new(number));
-    workers.put("Add", Box::new(add));
-    workers.put("Multiply", Box::new(multiply));
-
-    let engine = Engine::new("demo@0.1.1", workers);
+    let mut workers = WorkersBuilder::new();
+    workers.add("Number", Box::new(number))
+      .add("Add", Box::new(add))
+      .add("Multiply", Box::new(multiply));
+    
+    let engine = Engine::new("demo@0.1.1", workers.build());
     let nodes = engine.parse_json(json_data).unwrap();
     let output = engine.process(&nodes, 1);
     let oo = output.unwrap();
@@ -324,12 +327,12 @@ mod tests {
     }
     "#;
     
-    let mut workers = Workers::new();
+    let mut workers = WorkersBuilder::new();
 
-    workers.put("Number", Box::new(number));
-    workers.put("Add", Box::new(add));
+    workers.add("Number", Box::new(number));
+    workers.add("Add", Box::new(add));
 
-    let engine = Engine::new("demo@0.1.0", workers);
+    let engine = Engine::new("demo@0.1.0", workers.build());
     let nodes = engine.parse_json(json_data).unwrap();
     let output = engine.process(&nodes, 1);
     let oo = output.unwrap();
@@ -338,32 +341,25 @@ mod tests {
   }
 
   fn number(node: Node, inputs: InputData) -> OutputData {
-    let mut map = HashMap::new();
     let result = node.get_number_field("num", &inputs);
-    map.insert("num".to_string(), Ok(IOData {
-      data: Box::new(result.unwrap())
-    }));
-    Rc::new(map)
+    OutputDataBuilder::new()
+      .add_data("num", Box::new(result.unwrap()))
+      .build()
   }
 
   fn add(node: Node, inputs: InputData) -> OutputData {
     let num = node.get_number_field("num", &inputs);
     let num2 = node.get_number_field("num2", &inputs);
-    // println!("here :: -- :: inputs: {:?}, data: {:?}, {:?}, {:?}", &inputs, &node.data, &num, &num2);
-    let mut map = HashMap::new();
-    map.insert("num".to_string(), Ok(IOData {
-      data: Box::new(num.unwrap() + num2.unwrap())
-    }));
-    Rc::new(map)
+    OutputDataBuilder::new()
+      .add_data("num", Box::new(num.unwrap() + num2.unwrap()))
+      .build()
   }
 
   fn multiply(node: Node, inputs: InputData) -> OutputData {
     let num = node.get_number_field("num", &inputs);
     let num2 = node.get_number_field("num2", &inputs);
-    let mut map = HashMap::new();
-    map.insert("num".to_string(), Ok(IOData {
-      data: Box::new(num.unwrap() * num2.unwrap())
-    }));
-    Rc::new(map)
+    OutputDataBuilder::new()
+      .add_data("num", Box::new(num.unwrap() * num2.unwrap()))
+      .build()
   }
 }
