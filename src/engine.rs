@@ -82,7 +82,7 @@ impl <'a, 'b> Engine {
         input_data.into_iter().fold(InputDataBuilder::new(), |b, (key, data)| {
           b.add_data(key, data)
         }).build()
-      ).map_err(|e| EngineError::WorkerError(e))?;
+      )?;
       cache.insert(node.id, output.clone().into());
     }
     return Ok(output);

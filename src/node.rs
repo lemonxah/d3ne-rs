@@ -24,7 +24,7 @@ impl IOData {
 type Result<A> = std::result::Result<A, anyhow::Error>;
 
 #[derive(Debug)]
-pub struct NodeResult(Result<IOData>);
+pub struct NodeResult(pub Result<IOData>);
 
 impl Deref for NodeResult {
     type Target = Result<IOData>;
@@ -35,7 +35,7 @@ impl Deref for NodeResult {
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct OutputData(Rc<HashMap<String, NodeResult>>);
+pub struct OutputData(pub Rc<HashMap<String, NodeResult>>);
 
 impl From<Rc<HashMap<String, NodeResult>>> for OutputData {
     fn from(inner: Rc<HashMap<String, NodeResult>>) -> Self {
@@ -72,7 +72,7 @@ impl Deref for OutputData {
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct InputData(HashMap<String, OutputData>);
+pub struct InputData(pub HashMap<String, OutputData>);
 
 pub struct InputDataBuilder {
   data: Vec<(String, OutputData)>
@@ -91,7 +91,6 @@ impl InputDataBuilder {
   pub fn build(self) -> InputData {
     InputData(self.data.into_iter().map(|(key, data)| (key.into(), data)).collect::<HashMap<_,_>>())
   }
-
 }
 
 impl From<HashMap<String, OutputData>> for InputData {

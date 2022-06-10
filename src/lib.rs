@@ -21,6 +21,7 @@ mod tests {
   use crate::node::*;
   use crate::engine::Engine;
   use crate::workers::WorkersBuilder;
+  use anyhow::Result;
 
   #[test]
   fn multiply_works() {
@@ -340,26 +341,26 @@ mod tests {
     assert_eq!(result, &7i64);
   }
 
-  fn number(node: Node, inputs: InputData) -> OutputData {
-    let result = node.get_number_field("num", &inputs);
-    OutputDataBuilder::new()
-      .add_data("num", Box::new(result.unwrap()))
-      .build()
+  fn number(node: Node, inputs: InputData) -> Result<OutputData> {
+    let result = node.get_number_field("num", &inputs)?;
+    Ok(OutputDataBuilder::new()
+      .add_data("num", Box::new(result))
+      .build())
   }
 
-  fn add(node: Node, inputs: InputData) -> OutputData {
-    let num = node.get_number_field("num", &inputs);
-    let num2 = node.get_number_field("num2", &inputs);
-    OutputDataBuilder::new()
-      .add_data("num", Box::new(num.unwrap() + num2.unwrap()))
-      .build()
+  fn add(node: Node, inputs: InputData) -> Result<OutputData> {
+    let num = node.get_number_field("num", &inputs)?;
+    let num2 = node.get_number_field("num2", &inputs)?;
+    Ok(OutputDataBuilder::new()
+      .add_data("num", Box::new(num + num2))
+      .build())
   }
 
-  fn multiply(node: Node, inputs: InputData) -> OutputData {
-    let num = node.get_number_field("num", &inputs);
-    let num2 = node.get_number_field("num2", &inputs);
-    OutputDataBuilder::new()
-      .add_data("num", Box::new(num.unwrap() * num2.unwrap()))
-      .build()
+  fn multiply(node: Node, inputs: InputData) -> Result<OutputData> {
+    let num = node.get_number_field("num", &inputs)?;
+    let num2 = node.get_number_field("num2", &inputs)?;
+    Ok(OutputDataBuilder::new()
+      .add_data("num", Box::new(num * num2))
+      .build())
   }
 }

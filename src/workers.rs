@@ -8,16 +8,16 @@ pub enum WorkerError {
   WorkerNotFound(String),
 }
 
-pub struct Workers(HashMap<String, Box<dyn Fn<(Node, InputData), Output = OutputData>>>);
+pub struct Workers(HashMap<String, Box<dyn Fn<(Node, InputData), Output = anyhow::Result<OutputData>>>>);
 
 impl Workers {
-  pub fn call(&self, name: &str, node: Node, input: InputData) -> Result<OutputData, WorkerError> {
-    self.0.get(name).map(|f| f(node, input)).ok_or(WorkerError::WorkerNotFound(name.into()))
+  pub fn call(&self, name: &str, node: Node, input: InputData) -> anyhow::Result<OutputData> {
+    self.0.get(name).map(|f| f(node, input)).ok_or(WorkerError::WorkerNotFound(name.into()))?
   }
 }
 
 pub struct WorkersBuilder {
-  data: Vec<(String, Box<dyn Fn<(Node, InputData), Output = OutputData>>)>
+  data: Vec<(String, Box<dyn Fn<(Node, InputData), Output = anyhow::Result<OutputData>>>)>
 }
 
 #[allow(dead_code)]
@@ -26,7 +26,7 @@ impl WorkersBuilder {
     WorkersBuilder { data: vec![] }
   }
 
-  pub fn add(&mut self, name: &str, worker: Box<dyn Fn<(Node, InputData), Output = OutputData>>) -> &mut Self {
+  pub fn add(&mut self, name: &str, worker: Box<dyn Fn<(Node, InputData), Output = anyhow::Result<OutputData>>>) -> &mut Self {
     self.data.push((name.to_string(), worker));
     self
   }
