@@ -23,10 +23,10 @@ impl IOData {
 }
 
 #[derive(Debug)]
-pub struct NodeResult(pub Result<IOData>);
+pub struct NodeResult(pub IOData);
 
 impl Deref for NodeResult {
-    type Target = Result<IOData>;
+    type Target = IOData;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -62,7 +62,7 @@ impl <'a> OutputDataBuilder<'a> {
   }
 
   pub fn build(self) -> OutputData {
-    OutputData(Rc::new(self.data.into_iter().map(|(key, data)| (key.into(), NodeResult(Ok(IOData { data })))).collect::<HashMap<_,_>>() ))
+    OutputData(Rc::new(self.data.into_iter().map(|(key, data)| (key.into(), NodeResult(IOData { data }))).collect::<HashMap<_,_>>() ))
   }
 
 }
@@ -123,11 +123,11 @@ pub struct Node {
 
 impl Node {
   fn get_field<A>(&self, field: &str, inputs: &InputData, def: A, deref: Box<dyn Fn(&A) -> A>, convert: Box<dyn Fn(&Value) -> A>, noerr: Option<A> ) -> Result<A> where A: 'static {
-    let v1: Option<Result<A>> = inputs.0.get(field)
+    let v1: Option<A> = inputs.0.get(field)
       .and_then(|i| i.get(&self.inputs[field].connections[0].output))
-      .map(|v| v.as_ref().map_err(|e| anyhow!(format!("{:?}", e))).map(|rv| rv.get::<A>().map(deref).unwrap_or(def)));
-    match v1.or(self.data.get(field).map(|n| Ok(convert(n)))) {
-      Some(v) => v,
+      .map(|v| v.get::<A>().map(deref).unwrap_or(def));
+    match v1.or(self.data.get(field).map(convert)) {
+      Some(v) => Ok(v),
       None => match noerr {
         None => Err(anyhow!(format!("Node({}): no {:?} value found", &self.id, std::any::type_name::<A>()))),
         Some(d) => Ok(d)
@@ -153,21 +153,19 @@ impl Node {
 
   pub fn get_as_json_field_or(&self, field: &str, inputs: &InputData, default: Option<Value>) -> Result<Value> {
     let v1 = inputs.get(field).and_then(|i| i.get(&self.inputs[field].connections[0].output).map(|r| {
-      match r {
-        NodeResult(Ok(v)) => if v.is::<Value>() {
-          Ok((*v.get::<Value>().unwrap()).clone())
-        } else if v.is::<bool>() {
-          Ok(serde_json::from_str(&v.get::<bool>().unwrap().to_string()).unwrap())
-        } else if v.is::<i64>() {
-          Ok(serde_json::from_str(&v.get::<i64>().unwrap().to_string()).unwrap())
-        } else if v.is::<f64>() {
-          Ok(serde_json::from_str(&v.get::<f64>().unwrap().to_string()).unwrap())
-        } else if v.is::<String>() {
-          Ok(Value::String(v.get::<String>().unwrap().clone()))
-        } else {
-          default.clone().ok_or(anyhow!(format!("Node({}): no bool, i64, f64 or String value found", &self.id)))
-        },
-        NodeResult(Err(e)) => Err(anyhow!(format!("{:?}",e)))
+      let NodeResult(v) = r;
+      if v.is::<Value>() {
+        Ok((*v.get::<Value>().unwrap()).clone())
+      } else if v.is::<bool>() {
+        Ok(serde_json::from_str(&v.get::<bool>().unwrap().to_string()).unwrap())
+      } else if v.is::<i64>() {
+        Ok(serde_json::from_str(&v.get::<i64>().unwrap().to_string()).unwrap())
+      } else if v.is::<f64>() {
+        Ok(serde_json::from_str(&v.get::<f64>().unwrap().to_string()).unwrap())
+      } else if v.is::<String>() {
+        Ok(Value::String(v.get::<String>().unwrap().clone()))
+      } else {
+        default.clone().ok_or(anyhow!(format!("Node({}): no bool, i64, f64 or String value found", &self.id)))
       }
     }));
     match v1.or(self.data.get(field).map(|v| Ok(v.clone()))) {

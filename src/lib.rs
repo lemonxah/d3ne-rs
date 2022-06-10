@@ -176,7 +176,7 @@ mod tests {
     let nodes = engine.parse_json(json_data).unwrap();
     let output = engine.process(&nodes, 1);
     let oo = output.unwrap();
-    let result = oo["num"].as_ref().unwrap().get::<i64>().unwrap();
+    let result = oo["num"].get::<i64>().unwrap();
     assert_eq!(result, &8i64);
   }
 
@@ -337,7 +337,7 @@ mod tests {
     let nodes = engine.parse_json(json_data).unwrap();
     let output = engine.process(&nodes, 1);
     let oo = output.unwrap();
-    let result = oo["num"].as_ref().unwrap().get::<i64>().unwrap();
+    let result = oo["num"].get::<i64>().unwrap();
     assert_eq!(result, &7i64);
   }
 
