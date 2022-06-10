@@ -51,7 +51,12 @@ impl <'a> OutputDataBuilder<'a> {
     OutputDataBuilder { data: vec![] }
   }
 
-  pub fn add_data(mut self, key: &'a str, data: Box<dyn Any>) -> OutputDataBuilder<'a> {
+  pub fn add_data(&mut self, key: &'a str, data: Box<dyn Any>) -> &mut Self {
+    self.data.push((key, data));
+    self
+  }
+
+  pub fn data(mut self, key: &'a str, data: Box<dyn Any>) -> Self {
     self.data.push((key, data));
     self
   }

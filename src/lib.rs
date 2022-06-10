@@ -344,7 +344,7 @@ mod tests {
   fn number(node: Node, inputs: InputData) -> Result<OutputData> {
     let result = node.get_number_field("num", &inputs)?;
     Ok(OutputDataBuilder::new()
-      .add_data("num", Box::new(result))
+      .data("num", Box::new(result))
       .build())
   }
 
@@ -352,7 +352,7 @@ mod tests {
     let num = node.get_number_field("num", &inputs)?;
     let num2 = node.get_number_field("num2", &inputs)?;
     Ok(OutputDataBuilder::new()
-      .add_data("num", Box::new(num + num2))
+      .data("num", Box::new(num + num2))
       .build())
   }
 
@@ -360,7 +360,7 @@ mod tests {
     let num = node.get_number_field("num", &inputs)?;
     let num2 = node.get_number_field("num2", &inputs)?;
     Ok(OutputDataBuilder::new()
-      .add_data("num", Box::new(num * num2))
+      .data("num", Box::new(num * num2))
       .build())
   }
 }
