@@ -19,12 +19,12 @@ pub enum EngineError {
 
 pub struct Engine<'a> {
   id: &'a str,
-  workers: Workers<'a>,
+  workers: Workers,
 }
 
 #[allow(dead_code)]
 impl <'a> Engine<'a> {
-  pub fn new(id: &'a str, workers: Workers<'a>) -> Engine<'a> {
+  pub fn new(id: &'a str, workers: Workers) -> Engine<'a> {
     Engine {
       id: id,
       workers: workers,

@@ -1,5 +1,6 @@
 use crate::node::*;
 use std::collections::HashMap;
+use anyhow::Result;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -10,13 +11,18 @@ pub enum WorkerError {
   NodeRunError(i64, anyhow::Error)
 }
 
-pub struct Workers<'a>(HashMap<String, Box<dyn Fn<(&'a Node, InputData), Output = anyhow::Result<OutputData>>>>);
+pub trait Worker {
+  fn name(&self) -> &str;
+  fn work(&self, node: &Node, input_data: InputData) -> Result<OutputData>;
+}
 
-impl <'a> Workers<'a> {
-  pub fn call(&self, name: &str, node: &'a Node, input: InputData) -> anyhow::Result<OutputData> {
+pub struct Workers(HashMap<String, Box<dyn Worker>>);
+
+impl Workers {
+  pub fn call(&self, name: &str, node: &Node, input: InputData) -> Result<OutputData> {
     self.0.get(name)
-      .map(|f| 
-        f(&node, input)
+      .map(|worker| 
+        worker.work(&node, input)
           .map_err(|e| 
             anyhow!(WorkerError::NodeRunError(node.id, e))
           )
@@ -25,22 +31,22 @@ impl <'a> Workers<'a> {
   }
 }
 
-pub struct WorkersBuilder<'a> {
-  data: Vec<(String, Box<dyn Fn<(&'a Node, InputData), Output = anyhow::Result<OutputData>>>)>
+pub struct WorkersBuilder {
+  data: Vec<(String, Box<dyn Worker>)>
 }
 
 #[allow(dead_code)]
-impl <'a> WorkersBuilder<'a> {
-  pub fn new() -> WorkersBuilder<'a> {
+impl WorkersBuilder {
+  pub fn new() -> WorkersBuilder {
     WorkersBuilder { data: vec![] }
   }
 
-  pub fn add(&mut self, name: &str, worker: Box<dyn Fn<(&'a Node, InputData), Output = anyhow::Result<OutputData>>>) -> &mut Self {
-    self.data.push((name.to_string(), worker));
+  pub fn add<A>(&mut self, worker: A) -> &mut Self where A: Worker + 'static {
+    self.data.push((worker.name().to_string(), Box::new(worker)));
     self
   }
 
-  pub fn build(self) -> Workers<'a> {
+  pub fn build(self) -> Workers {
     Workers(self.data.into_iter().collect::<HashMap<_,_>>())
   }
 }

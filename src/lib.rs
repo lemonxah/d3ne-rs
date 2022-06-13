@@ -18,7 +18,7 @@ pub use engine::*;
 
 #[cfg(test)]
 mod tests {
-  use crate::{node::*, WorkerError};
+  use crate::{node::*, WorkerError, Worker};
   use crate::engine::Engine;
   use crate::workers::WorkersBuilder;
   use anyhow::Result;
@@ -168,9 +168,9 @@ mod tests {
     "#;
 
     let mut workers = WorkersBuilder::new();
-    workers.add("Number", Box::new(number))
-      .add("Add", Box::new(add))
-      .add("Multiply", Box::new(multiply));
+    workers.add(Number)
+      .add(Add)
+      .add(Multiply);
     
     let engine = Engine::new("demo@0.1.1", workers.build());
     let nodes = engine.parse_json(json_data).unwrap();
@@ -331,8 +331,8 @@ mod tests {
     
     let mut workers = WorkersBuilder::new();
 
-    workers.add("Number", Box::new(number));
-    workers.add("Add", Box::new(add));
+    workers.add(Number);
+    workers.add(Add);
 
     let engine = Engine::new("demo@0.1.0", workers.build());
     let nodes = engine.parse_json(json_data).unwrap();
@@ -488,8 +488,8 @@ mod tests {
     
     let mut workers = WorkersBuilder::new();
 
-    workers.add("Number", Box::new(number));
-    workers.add("Add", Box::new(add));
+    workers.add(Number);
+    workers.add(Add);
 
     let engine = Engine::new("demo@0.1.0", workers.build());
     let nodes = engine.parse_json(json_data).unwrap();
@@ -502,26 +502,47 @@ mod tests {
     assert_eq!(err.to_string(), expected.to_string());
   }
 
-  fn number(node: &Node, inputs: InputData) -> Result<OutputData> {
-    let result = node.get_number_field("num", &inputs)?;
-    Ok(OutputDataBuilder::new()
-      .data("num", Box::new(result))
-      .build())
+  struct Number;
+  impl Worker for Number {
+    fn name(&self) -> &str {
+        "Number"
+    }
+
+    fn work(&self, node: &Node, input_data: InputData) -> Result<OutputData> {
+      let result = node.get_number_field("num", &input_data)?;
+      Ok(OutputDataBuilder::new()
+        .data("num", Box::new(result))
+        .build())
+      }
   }
 
-  fn add(node: &Node, inputs: InputData) -> Result<OutputData> {
-    let num = node.get_number_field("num", &inputs)?;
-    let num2 = node.get_number_field("num2", &inputs)?;
-    Ok(OutputDataBuilder::new()
-      .data("num", Box::new(num + num2))
-      .build())
+  struct Add;
+  impl Worker for Add {
+    fn name(&self) -> &str {
+        "Add"
+    }
+
+    fn work(&self, node: &Node, input_data: InputData) -> Result<OutputData> {
+      let num = node.get_number_field("num", &input_data)?;
+      let num2 = node.get_number_field("num2", &input_data)?;
+      Ok(OutputDataBuilder::new()
+        .data("num", Box::new(num + num2))
+        .build())
+    }
   }
 
-  fn multiply(node: &Node, inputs: InputData) -> Result<OutputData> {
-    let num = node.get_number_field("num", &inputs)?;
-    let num2 = node.get_number_field("num2", &inputs)?;
-    Ok(OutputDataBuilder::new()
-      .data("num", Box::new(num * num2))
-      .build())
+  struct Multiply;
+  impl Worker for Multiply {
+    fn name(&self) -> &str {
+        "Multiply"
+    }
+
+    fn work(&self, node: &Node, input_data: InputData) -> Result<OutputData> {
+      let num = node.get_number_field("num", &input_data)?;
+      let num2 = node.get_number_field("num2", &input_data)?;
+      Ok(OutputDataBuilder::new()
+        .data("num", Box::new(num * num2))
+        .build())
+    }
   }
 }
