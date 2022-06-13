@@ -2,7 +2,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::any::{Any, TypeId};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, Number};
 use thiserror::Error;
 use crate::target::{Inputs, Outputs};
 use std::collections::HashMap;
@@ -191,30 +191,26 @@ impl Node {
       Box::new(|r| r.clone()),
       Box::new(|v| { 
         serde_json::from_str(v.as_str().ok_or(anyhow!("Field: {}, unable to get str value for deserialze", field.to_string()))?)
-          .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_string(), v.as_str().unwrap_or_default().to_string(), e)))
+          .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_string(), format!("[{:?}]json({})", TypeId::of::<Value>(), v.as_str().unwrap_or_default().to_string()), e)))
       }),
       default)
   }
 
   pub fn get_as_json_field_or(&self, field: &'static str, inputs: &InputData, default: Option<Value>) -> Result<Value> {
-    let err = format!("Field: {}, No bool, i64, f64 or String value found", field.to_string());
+    let err = format!("Field: {}, No josn, bool, i64, f64 or String value found", field.to_string());
     inputs.get(field)
       .and_then(|i| i.get(&self.inputs.clone().map(|i| i[field].connections[0].output.clone()).unwrap_or_default()).map(|r| {
         let NodeResult(v) = r;
         if v.is::<Value>() {
           v.get::<Value>().map(|v| v.clone()).ok_or(anyhow!(NodeError::ConversionError("Unable to get `Value` as json field".to_owned())))
         } else if v.is::<bool>() {
-          serde_json::from_str(&v.get::<bool>().ok_or(anyhow!(NodeError::ConversionError("Unable to get `bool` as json field".to_owned())))?.to_string())
-            .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_owned(), format!("{:?}", v), e)))
+          v.get::<bool>().map(|b| Value::Bool(*b)).ok_or(anyhow!(NodeError::ConversionError("Unable to get `bool` as json field".to_owned())))
         } else if v.is::<i64>() {
-          serde_json::from_str(&v.get::<i64>().ok_or(anyhow!(NodeError::ConversionError("Unable to get `i64` as json field".to_owned())))?.to_string())
-            .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_owned(), format!("{:?}", v), e)))
+          v.get::<i64>().map(|i| Number::from(*i)).map(Value::Number).ok_or(anyhow!(NodeError::ConversionError("Unable to get `i64` as json field".to_owned())))
         } else if v.is::<f64>() {
-          serde_json::from_str(&v.get::<f64>().ok_or(anyhow!(NodeError::ConversionError("Unable to get `f64` as json field".to_owned())))?.to_string())
-            .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_owned(), format!("{:?}", v), e)))
+          v.get::<f64>().and_then(|f| Number::from_f64(*f)).map(Value::Number).ok_or(anyhow!(NodeError::ConversionError("Unable to get `i64` as json field".to_owned())))
         } else if v.is::<String>() {
-          serde_json::from_str(&v.get::<String>().ok_or(anyhow!(NodeError::ConversionError("Unable to get `String` as json field".to_owned())))?.to_string())
-            .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_owned(), format!("{:?}", v), e)))
+          v.get::<String>().map(|v| Value::String(v.clone())).ok_or(anyhow!(NodeError::ConversionError("Unable to get `String` as json field".to_owned())))
         } else {
           default.clone().ok_or(anyhow!(err.to_owned()))
         }
