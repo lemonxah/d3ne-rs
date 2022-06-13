@@ -62,7 +62,7 @@ impl <'a> Engine<'a> {
     }
 
     let mut input_data: Vec<(String, OutputData)> = vec![];
-    for (name, input) in node.inputs.inner() {
+    for (name, input) in node.inputs.clone().unwrap_or_default().inner() {
       for conn in &input.connections {
         if !closed_nodes.contains(&conn.node) {
           let out = self.process_node(&nodes[&conn.node], nodes, cache, closed_nodes)?;
@@ -93,7 +93,7 @@ impl <'a> Engine<'a> {
     let mut id: i64 = node.id;
     if !closed_nodes.contains(&node.id) {
       let outputdata = self.process_node(&node, &nodes, cache, closed_nodes)?;
-      for (name, output) in node.outputs.inner() {
+      for (name, output) in node.outputs.clone().unwrap_or_default().inner() {
         if outputdata.contains_key(name) {
           for connection in &output.connections {
             if !closed_nodes.contains(&connection.node) {
@@ -115,17 +115,17 @@ impl <'a> Engine<'a> {
   }
 
   fn disable_node_tree(&self, node: &'_ Node, nodes: &HashMap<i64, Node>, closed_nodes: &mut Vec<i64>) {
-    match node.inputs.get("action") {
+    match node.inputs.clone().unwrap_or_default().get("action") {
       None => (),
       Some(input) => {
         if input.connections.len() == 1 {
           if !closed_nodes.contains(&node.id) {
             closed_nodes.push(node.id);
           }
-          for (_, output) in node.outputs.clone().inner() {
+          for (_, output) in node.outputs.clone().unwrap_or_default().inner() {
             for connection in &output.connections {
               let _node = &nodes[&connection.node];
-              match _node.inputs.get("action") {
+              match _node.inputs.clone().unwrap_or_default().get("action") {
                 None => (),
                 Some(input) => {
                   if let Some(_) = input.connections.clone().into_iter().find(|c| c.node == connection.node) {

@@ -126,19 +126,19 @@ impl Deref for InputData {
 pub struct Node {
   pub id: i64,
   pub name: String,
-  pub data: Value,
+  pub data: Option<Value>,
   pub group: Option<i64>,
-  pub position: Vec<f32>,
-  pub inputs: Inputs,
-  pub outputs: Outputs
+  pub position: Option<Vec<f32>>,
+  pub inputs: Option<Inputs>,
+  pub outputs: Option<Outputs>
 }
 
 impl Node {
   fn get_field<A>(&self, field: &'static str, inputs: &InputData, def: A, deref: Box<dyn Fn(&A) -> A>, convert: Box<dyn Fn(&Value) -> Result<A>>, noerr: Option<A> ) -> Result<A> where A: 'static {
     inputs.0.get(field)
-      .and_then(|i| i.get(&self.inputs[field].connections[0].output))
+      .and_then(|i| i.get(&self.inputs.clone().map(|i| i[field].connections[0].output.clone()).unwrap_or_default()))
       .map(|v| Ok(v.get::<A>().map(deref).unwrap_or(def)))
-      .or(self.data.get(field).map(convert))    
+      .or(self.data.clone().and_then(|d| d.get(field).map(convert)))
       .or(noerr.map(Ok)).unwrap_or(
         Err(anyhow!("{}", NodeError::NoValueFound(field.into())))
       )
@@ -198,7 +198,7 @@ impl Node {
   pub fn get_as_json_field_or(&self, field: &'static str, inputs: &InputData, default: Option<Value>) -> Result<Value> {
     let err = format!("Field: {}, No bool, i64, f64 or String value found", field.to_string());
     inputs.get(field)
-      .and_then(|i| i.get(&self.inputs[field].connections[0].output).map(|r| {
+      .and_then(|i| i.get(&self.inputs.clone().map(|i| i[field].connections[0].output.clone()).unwrap_or_default()).map(|r| {
         let NodeResult(v) = r;
         if v.is::<Value>() {
           v.get::<Value>().map(|v| v.clone()).ok_or(anyhow!(NodeError::ConversionError("Unable to get `Value` as json field".to_owned())))
@@ -218,7 +218,8 @@ impl Node {
           default.clone().ok_or(anyhow!(err.to_owned()))
         }
       }))
-      .or(self.data.get(field).map(|v| Ok(v.clone())))
+      .or(self.data.clone().and_then(|d| d.get(field).map(|v| Ok(v.clone()))))
+      .or(default.map(Ok))
       .unwrap_or(Err(anyhow!(err.to_owned())))
 
   }

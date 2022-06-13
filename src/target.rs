@@ -25,7 +25,7 @@ pub struct Output {
   pub connections: Vec<OutputConnection>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Inputs(HashMap<String, Input>);
 
 impl Inputs {
@@ -41,7 +41,7 @@ impl Deref for Inputs {
   }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Outputs(HashMap<String, Output>);
 
 impl Outputs {
