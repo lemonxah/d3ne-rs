@@ -29,8 +29,8 @@ pub enum NodeError {
   ConversionError(String),
   #[error("No value found for: {0}")]
   NoValueFound(String),
-  #[error("Field: {1}, None: {0}, Deserialization error: {2}")]
-  DeserializeError(i64, String, serde_json::Error)
+  #[error("Field: {0}, Value: {1}, Deserialization error: {2}")]
+  DeserializeError(String, String, serde_json::Error)
 }
 
 
@@ -134,11 +134,11 @@ pub struct Node {
 }
 
 impl Node {
-  fn get_field<A>(&self, field: &'static str, inputs: &InputData, def: A, deref: Box<dyn Fn(&A) -> A>, convert: Box<dyn Fn(&Node, &Value) -> Result<A>>, noerr: Option<A> ) -> Result<A> where A: 'static {
+  fn get_field<A>(&self, field: &'static str, inputs: &InputData, def: A, deref: Box<dyn Fn(&A) -> A>, convert: Box<dyn Fn(&Value) -> Result<A>>, noerr: Option<A> ) -> Result<A> where A: 'static {
     inputs.0.get(field)
       .and_then(|i| i.get(&self.inputs.clone().map(|i| i[field].connections[0].output.clone()).unwrap_or_default()))
       .map(|v| Ok(v.get::<A>().map(deref).unwrap_or(def)))
-      .or(self.data.clone().and_then(|d| d.get(field).map(|v| convert(self, v))))
+      .or(self.data.clone().and_then(|d| d.get(field).map(|v| convert(v))))
       .or(noerr.map(Ok)).unwrap_or(
         Err(anyhow!("{}", NodeError::NoValueFound(field.into())))
       )
@@ -150,7 +150,7 @@ impl Node {
       inputs,
       i64::MIN,
       Box::new(|r| *r),
-      Box::new(|_n, v| v.as_i64().ok_or(anyhow!(NodeError::ConversionError(format!("Field: {}, Type: {}", field.to_string(), std::any::type_name::<i64>()))))),
+      Box::new(|v| v.as_i64().ok_or(anyhow!(NodeError::ConversionError(format!("Field: {}, Type: {}", field.to_string(), std::any::type_name::<i64>()))))),
       default
     )
   }
@@ -161,7 +161,7 @@ impl Node {
       inputs,
       f64::MIN,
       Box::new(|r| *r),
-      Box::new(|_n, v| v.as_f64().ok_or(anyhow!(NodeError::ConversionError(format!("Field: {}, Type: {}", field.to_string(), std::any::type_name::<f64>()))))),
+      Box::new(|v| v.as_f64().ok_or(anyhow!(NodeError::ConversionError(format!("Field: {}, Type: {}", field.to_string(), std::any::type_name::<f64>()))))),
       default
     )
   }
@@ -172,7 +172,7 @@ impl Node {
       inputs,
       String::default(),
       Box::new(|r| r.to_owned()),
-      Box::new(|_n, v| {
+      Box::new(|v| {
         if let Value::String(s) = v { 
           Ok(s.clone()) 
         } else {
@@ -189,9 +189,9 @@ impl Node {
       inputs,
       json!({}),
       Box::new(|r| r.clone()),
-      Box::new(|n, v| { 
+      Box::new(|v| { 
         serde_json::from_str(v.as_str().ok_or(anyhow!("Field: {}, unable to get str value for deserialze", field.to_string()))?)
-          .map_err(|e| anyhow!(NodeError::DeserializeError(n.id, field.to_string(), e)))
+          .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_string(), v.as_str().unwrap_or_default().to_string(), e)))
       }),
       default)
   }
@@ -205,16 +205,16 @@ impl Node {
           v.get::<Value>().map(|v| v.clone()).ok_or(anyhow!(NodeError::ConversionError("Unable to get `Value` as json field".to_owned())))
         } else if v.is::<bool>() {
           serde_json::from_str(&v.get::<bool>().ok_or(anyhow!(NodeError::ConversionError("Unable to get `bool` as json field".to_owned())))?.to_string())
-            .map_err(|e| anyhow!(NodeError::DeserializeError(self.id, field.to_owned(), e)))
+            .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_owned(), format!("{:?}", v), e)))
         } else if v.is::<i64>() {
           serde_json::from_str(&v.get::<i64>().ok_or(anyhow!(NodeError::ConversionError("Unable to get `i64` as json field".to_owned())))?.to_string())
-            .map_err(|e| anyhow!(NodeError::DeserializeError(self.id, field.to_owned(), e)))
+            .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_owned(), format!("{:?}", v), e)))
         } else if v.is::<f64>() {
           serde_json::from_str(&v.get::<f64>().ok_or(anyhow!(NodeError::ConversionError("Unable to get `f64` as json field".to_owned())))?.to_string())
-            .map_err(|e| anyhow!(NodeError::DeserializeError(self.id, field.to_owned(), e)))
+            .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_owned(), format!("{:?}", v), e)))
         } else if v.is::<String>() {
           serde_json::from_str(&v.get::<String>().ok_or(anyhow!(NodeError::ConversionError("Unable to get `String` as json field".to_owned())))?.to_string())
-            .map_err(|e| anyhow!(NodeError::DeserializeError(self.id, field.to_owned(), e)))
+            .map_err(|e| anyhow!(NodeError::DeserializeError(field.to_owned(), format!("{:?}", v), e)))
         } else {
           default.clone().ok_or(anyhow!(err.to_owned()))
         }
