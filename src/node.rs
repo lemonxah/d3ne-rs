@@ -1,9 +1,10 @@
 use std::rc::Rc;
 use std::any::{Any, TypeId};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Deserializer};
 use serde_json::Value;
 use crate::target::{Inputs, Outputs};
 use std::collections::HashMap;
+use serde::de::DeserializeOwned;
 
 #[derive(Debug)]
 pub struct IOData {
@@ -59,11 +60,16 @@ impl Node {
       }
     }
   }
-  
+
+  // TODO: Remove 'static from above method
+  pub fn get_field_t<T:Default + Clone + DeserializeOwned + 'static>(&self, field: &str, inputs: &InputData) -> Result<T> {
+    self.get_field(field, inputs, T::default(), Box::new(|t| t.clone()), Box::new(|v| serde_json::from_value(v.clone()).unwrap()), None)
+  }
+
   pub fn get_number_field_or(&self, field: &str, inputs: &InputData, default: Option<i64>) -> Result<i64> {
     self.get_field(field, inputs, i64::MIN, Box::new(|r| *r), Box::new(|v| v.as_i64().unwrap()), default)
   }
-  
+
   pub fn get_float_number_field_or(&self, field: &str, inputs: &InputData, default: Option<f64>) -> Result<f64> {
     self.get_field(field, inputs, f64::MIN, Box::new(|r| *r), Box::new(|v| v.as_f64().unwrap()), default)
   }
@@ -108,15 +114,15 @@ impl Node {
   pub fn get_string_field(&self, field: &str, inputs: &InputData) -> Result<String> {
     self.get_string_field_or(field, inputs, None)
   }
-  
+
   pub fn get_number_field(&self, field: &str, inputs: &InputData) -> Result<i64> {
     self.get_number_field_or(field, inputs, None)
   }
-  
+
   pub fn get_float_number_field(&self, field: &str, inputs: &InputData) -> Result<f64> {
     self.get_float_number_field_or(field, inputs, None)
   }
-  
+
   pub fn get_json_field(&self, field: &str, inputs: &InputData) -> Result<Value> {
     self.get_json_field_or(field, inputs, None)
   }
