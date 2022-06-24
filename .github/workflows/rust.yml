@@ -18,7 +18,7 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
-      
+
     - name: Cargo Semver Update
       id: update
       uses: lemonxah/cargo_semver_update@v1.0.1
@@ -26,7 +26,7 @@ jobs:
     - name: Commit file
       uses: swinton/commit@v2.x
       env:
-        GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ github.token }}
       with:
         files: |
           Cargo.toml
@@ -35,5 +35,5 @@ jobs:
     - name: Commit tagger
       uses: tvdias/github-tagger@v0.0.2
       with:
-        repo-token: ${{ inputs.GITHUB_TOKEN }}
+        repo-token: ${{ github.token }}
         tag: ${{ steps.update.outputs.new_version_with_v }}
