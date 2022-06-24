@@ -18,7 +18,22 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
-    - name: Cargo Semver Update and Tag
-      uses: lemonxah/cargo_semver_update_and_tag@v1.0.1
+      
+    - name: Cargo Semver Update
+      id: update
+      uses: lemonxah/cargo_semver_update@v1.0.1
+    
+    - name: Commit file
+      uses: swinton/commit@v2.x
+      env:
+        GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
       with:
-        GITHUB_TOKEN: ${{ github.token }}
+        files: |
+          Cargo.toml
+        commit-message: Updating Cargo semver version to ${{ steps.update.outputs.new_version }}
+      
+    - name: Commit tagger
+      uses: tvdias/github-tagger@v0.0.2
+      with:
+        repo-token: ${{ inputs.GITHUB_TOKEN }}
+        tag: ${{ steps.update.outputs.new_version_with_v }}
