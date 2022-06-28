@@ -1,29 +1,29 @@
-#[macro_use] extern crate serde;
-#[macro_use] extern crate serde_json;
-#[macro_use] extern crate anyhow;
+#[macro_use]
+extern crate anyhow;
 
-mod target;
 mod group;
-#[macro_use] mod node;
-mod workers;
+mod target;
+#[macro_use]
+mod node;
 mod engine;
+mod workers;
 
-pub use target::*;
+pub use engine::*;
 pub use group::*;
 pub use node::*;
+pub use target::*;
 pub use workers::*;
-pub use engine::*;
 
 #[cfg(test)]
 mod tests {
-  use crate::{node::*, WorkerError, Worker};
-  use crate::engine::Engine;
-  use crate::workers::WorkersBuilder;
-  use anyhow::Result;
+    use crate::engine::Engine;
+    use crate::workers::WorkersBuilder;
+    use crate::{node::*, Worker, WorkerError};
+    use anyhow::Result;
 
-  #[test]
-  fn multiply_works() {
-    let json_data = r#"
+    #[test]
+    fn multiply_works() {
+        let json_data = r#"
     {
       "id": "demo@0.1.1",
       "nodes": {
@@ -165,23 +165,21 @@ mod tests {
     }
     "#;
 
-    let mut workers = WorkersBuilder::new();
-    workers.add(Number)
-      .add(Add)
-      .add(Multiply);
-    
-    let engine = Engine::new("demo@0.1.1", workers.build());
-    let nodes = engine.parse_json(json_data).unwrap();
-    let nn = nodes.clone();
-    let output = engine.process(&nn, 1);
-    let oo = output.unwrap();
-    let result = oo["num"].get::<i64>().unwrap();
-    assert_eq!(result, &8i64);
-  }
+        let mut workers = WorkersBuilder::new();
+        workers.add(Number).add(Add).add(Multiply);
 
-  #[test]
-  fn add_works() {
-    let json_data = r#"
+        let engine = Engine::new("demo@0.1.1", workers.build());
+        let nodes = engine.parse_json(json_data).unwrap();
+        let nn = nodes.clone();
+        let output = engine.process(&nn, 1);
+        let oo = output.unwrap();
+        let result = oo["num"].get::<i64>().unwrap();
+        assert_eq!(result, &8i64);
+    }
+
+    #[test]
+    fn add_works() {
+        let json_data = r#"
     {
       "id": "demo@0.1.0",
       "nodes": {
@@ -326,23 +324,23 @@ mod tests {
       "comments": []
     }
     "#;
-    
-    let mut workers = WorkersBuilder::new();
 
-    workers.add(Number);
-    workers.add(Add);
+        let mut workers = WorkersBuilder::new();
 
-    let engine = Engine::new("demo@0.1.0", workers.build());
-    let nodes = engine.parse_json(json_data).unwrap();
-    let output = engine.process(&nodes, 1);
-    let oo = output.unwrap();
-    let result = oo["num"].get::<i64>().unwrap();
-    assert_eq!(result, &7i64);
-  }
+        workers.add(Number);
+        workers.add(Add);
 
-  #[test]
-  fn errors_propegate() {
-    let json_data = r#"
+        let engine = Engine::new("demo@0.1.0", workers.build());
+        let nodes = engine.parse_json(json_data).unwrap();
+        let output = engine.process(&nodes, 1);
+        let oo = output.unwrap();
+        let result = oo["num"].get::<i64>().unwrap();
+        assert_eq!(result, &7i64);
+    }
+
+    #[test]
+    fn errors_propegate() {
+        let json_data = r#"
     {
       "id": "demo@0.1.0",
       "nodes": {
@@ -483,64 +481,69 @@ mod tests {
       "comments": []
     }
     "#;
-    
-    let mut workers = WorkersBuilder::new();
 
-    workers.add(Number);
-    workers.add(Add);
+        let mut workers = WorkersBuilder::new();
 
-    let engine = Engine::new("demo@0.1.0", workers.build());
-    let nodes = engine.parse_json(json_data).unwrap();
-    let output = engine.process(&nodes, 1);
-    // Node[1]: Node input conversion error: Field: num, Type: i64
-    let err: anyhow::Error = output.err().unwrap();
-    let expected: anyhow::Error = anyhow!(WorkerError::NodeRunError(1, anyhow!(NodeError::ConversionError("Field: num, Type: i64".to_owned()))));
-    println!("{:?}", &err);
-    println!("{:?}", &expected);
-    assert_eq!(err.to_string(), expected.to_string());
-  }
+        workers.add(Number);
+        workers.add(Add);
 
-  struct Number;
-  impl Worker for Number {
-    fn name(&self) -> &str {
-        "Number"
+        let engine = Engine::new("demo@0.1.0", workers.build());
+        let nodes = engine.parse_json(json_data).unwrap();
+        let output = engine.process(&nodes, 1);
+        // Node[1]: Node input conversion error: Field: num, Type: i64
+        let err: anyhow::Error = output.err().unwrap();
+        let expected: anyhow::Error = anyhow!(WorkerError::NodeRunError(
+            1,
+            anyhow!(NodeError::ConversionError(
+                "Field: num, Type: i64".to_owned()
+            ))
+        ));
+        println!("{:?}", &err);
+        println!("{:?}", &expected);
+        assert_eq!(err.to_string(), expected.to_string());
     }
 
-    fn work(&self, node: &Node, input_data: InputData) -> Result<OutputData> {
-      let result = node.get_number_field("num", &input_data)?;
-      Ok(OutputDataBuilder::new()
-        .data("num", Box::new(result))
-        .build())
-      }
-  }
+    struct Number;
+    impl Worker for Number {
+        fn name(&self) -> &str {
+            "Number"
+        }
 
-  struct Add;
-  impl Worker for Add {
-    fn name(&self) -> &str {
-        "Add"
+        fn work(&self, node: &Node, input_data: InputData) -> Result<OutputData> {
+            let result = node.get_number_field("num", &input_data)?;
+            Ok(OutputDataBuilder::new()
+                .data("num", Box::new(result))
+                .build())
+        }
     }
 
-    fn work(&self, node: &Node, input_data: InputData) -> Result<OutputData> {
-      let num = node.get_number_field("num", &input_data)?;
-      let num2 = node.get_number_field("num2", &input_data)?;
-      Ok(OutputDataBuilder::new()
-        .data("num", Box::new(num + num2))
-        .build())
-    }
-  }
+    struct Add;
+    impl Worker for Add {
+        fn name(&self) -> &str {
+            "Add"
+        }
 
-  struct Multiply;
-  impl Worker for Multiply {
-    fn name(&self) -> &str {
-        "Multiply"
+        fn work(&self, node: &Node, input_data: InputData) -> Result<OutputData> {
+            let num = node.get_number_field("num", &input_data)?;
+            let num2 = node.get_number_field("num2", &input_data)?;
+            Ok(OutputDataBuilder::new()
+                .data("num", Box::new(num + num2))
+                .build())
+        }
     }
 
-    fn work(&self, node: &Node, input_data: InputData) -> Result<OutputData> {
-      let num = node.get_number_field("num", &input_data)?;
-      let num2 = node.get_number_field("num2", &input_data)?;
-      Ok(OutputDataBuilder::new()
-        .data("num", Box::new(num * num2))
-        .build())
+    struct Multiply;
+    impl Worker for Multiply {
+        fn name(&self) -> &str {
+            "Multiply"
+        }
+
+        fn work(&self, node: &Node, input_data: InputData) -> Result<OutputData> {
+            let num = node.get_number_field("num", &input_data)?;
+            let num2 = node.get_number_field("num2", &input_data)?;
+            Ok(OutputDataBuilder::new()
+                .data("num", Box::new(num * num2))
+                .build())
+        }
     }
-  }
 }
